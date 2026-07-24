@@ -15,6 +15,7 @@ export interface Subtopic {
   summary: string
   points: string[]
   sourceRefs: string[]
+  discrepancy?: string
   modified?: boolean
 }
 
