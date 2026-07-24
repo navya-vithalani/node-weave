@@ -134,6 +134,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const finalRaw = await callGemini(GEMINI_API_KEY, CONSOLIDATION_PROMPT, consolidationInput)
       const final = parseJsonSafe(finalRaw)
 
+      // Override AI-fabricated timestamp with real server time
+      final.createdAt = new Date().toISOString()
+
       return res.status(200).json(final)
     }
 
@@ -145,6 +148,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const raw = await callGemini(GEMINI_API_KEY, SYSTEM_PROMPT, userContent)
     const parsed = parseJsonSafe(raw)
+
+    // Override AI-fabricated timestamp with real server time
+    parsed.createdAt = new Date().toISOString()
 
     return res.status(200).json(parsed)
   } catch (err) {
