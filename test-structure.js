@@ -99,7 +99,7 @@ async function main() {
 
   // Check for conflict notes in summaries
   const conflictTerms = ['discrep', 'conflict', 'disagree', 'contradict', 'both view', 'alternative', 'according to some']
-  const conflictHits: { topic: string; snippet: string }[] = []
+  const conflictHits = []
 
   for (const topic of data.topics || []) {
     for (const term of conflictTerms) {
