@@ -49,8 +49,14 @@ Respond with a JSON object of this exact shape:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: systemPrompt }]
+          },
           contents: [
-            { role: 'user', parts: [{ text: systemPrompt }, { text: userPrompt }] },
+            {
+              role: 'user',
+              parts: [{ text: userPrompt }]
+            },
           ],
           generationConfig: {
             temperature: 0.2,
@@ -108,7 +114,22 @@ Respond with a JSON object of this exact shape:
     }
 
     const cleaned = text.replace(/^```(?:json)?\s*\n?|```$/g, '').trim()
-    const parsed = JSON.parse(cleaned)
+    let parsed
+    try {
+      parsed = JSON.parse(cleaned)
+    } catch {
+      // If direct parse fails, try extracting JSON from markdown fences
+      const extracted = cleaned
+        .replace(/^[\s\S]*?```(?:json)?\s*\n?/, '')
+        .replace(/\n?```[\s\S]*$/, '')
+        .replace(/^[^{]*/, '')
+        .replace(/[^}]*$/, '')
+        .trim()
+      if (!extracted) {
+        return res.status(502).json({ error: 'AI returned invalid JSON' })
+      }
+      parsed = JSON.parse(extracted)
+    }
 
     return res.status(200).json(parsed)
   } catch (err) {

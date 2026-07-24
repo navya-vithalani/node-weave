@@ -2,9 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 // POST /api/structure — multi-doc consolidation structuring call (TRD §4.1)
 
-const SYSTEM_PROMPT = `You are structuring raw study material into a hierarchical knowledge graph. You must analyse relations between various topics, even if not explicitly mentioned in the sources. You will receive one or more source documents that may cover overlapping topics, use different terminology for the same ideas, or vary in depth. Where sources overlap, merge them into one topic/subtopic and combine their unique points. Where sources conflict, keep both claims and populate the 'discrepancy' field on the relevant subtopic explaining the conflict rather than silently picking one. Output ONLY valid JSON matching the given schema. No prose, no markdown fences, no commentary outside the JSON.`
+const SYSTEM_PROMPT = `You are structuring raw study material into a hierarchical knowledge graph. You must analyse relations between various topics, even if not explicitly mentioned in the sources. You will receive one or more source documents that may cover overlapping topics, use different terminology for the same ideas, or vary in depth. Where sources overlap, merge them into one topic/subtopic and combine their unique points. Where sources conflict, keep both claims and populate the 'discrepancy' field on the relevant subtopic with a brief explanation of the disagreement; if all sources agree on a point, set discrepancy to null. Output ONLY valid JSON matching the given schema. No prose, no markdown fences, no commentary outside the JSON.`
 
-const CONSOLIDATION_PROMPT = `You are consolidating partial knowledge graphs into one unified structure. You will receive several JSON structures, each produced from a different subset of source documents. Merge them into a single coherent hierarchical knowledge graph. Where topics overlap across partial structures, merge them into one topic/subtopic and combine their unique points. Where the same idea uses different terminology, unify under the most precise term. Where sources conflict, keep both claims and populate the 'discrepancy' field on the relevant subtopic explaining the conflict. Output ONLY valid JSON matching the given schema. No prose, no markdown fences, no commentary outside the JSON.`
+const CONSOLIDATION_PROMPT = `You are consolidating partial knowledge graphs into one unified structure. You will receive several JSON structures, each produced from a different subset of source documents. Merge them into a single coherent hierarchical knowledge graph. Where topics overlap across partial structures, merge them into one topic/subtopic and combine their unique points. Where the same idea uses different terminology, unify under the most precise term. Where sources conflict, keep both claims and populate the 'discrepancy' field on the relevant subtopic with a brief explanation of the disagreement; if all sources agree, set discrepancy to null. Output ONLY valid JSON matching the given schema. No prose, no markdown fences, no commentary outside the JSON.`
 
 const TARGET_SCHEMA = `{
   "sessionName": "string",
@@ -21,7 +21,7 @@ const TARGET_SCHEMA = `{
           "summary": "string",
           "points": ["string", "..."],
           "sourceRefs": ["chunk ids"],
-          "discrepancy": "string | null — if sources disagree on a point, describe the disagreement here; null if all sources agree"
+          "discrepancy": "string | null"
         }
       ]
     }
@@ -49,8 +49,14 @@ async function callGemini(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: systemPrompt }]
+        },
         contents: [
-          { role: 'user', parts: [{ text: systemPrompt }, { text: userContent }] },
+          {
+            role: 'user',
+            parts: [{ text: userContent }]
+          },
         ],
         generationConfig: {
           temperature: 0.2,
@@ -77,10 +83,19 @@ async function callGemini(
 }
 
 function parseJsonSafe(text: string): any {
+  // Try raw parse first
   try {
     return JSON.parse(text)
   } catch {
-    throw new Error('AI returned invalid JSON')
+    // Fallback: strip markdown fences and any text outside the JSON block
+    const cleaned = text
+      .replace(/^[\s\S]*?```(?:json)?\s*\n?/, '')   // remove everything before first ```json or ```
+      .replace(/\n?```[\s\S]*$/, '')                  // remove everything after closing ```
+      .replace(/^[^{]*/, '')                           // remove any leading non-JSON text
+      .replace(/[^}]*$/, '')                           // remove any trailing non-JSON text
+      .trim()
+    if (!cleaned) throw new Error('AI returned invalid JSON')
+    return JSON.parse(cleaned)
   }
 }
 

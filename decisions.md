@@ -31,3 +31,23 @@ This file tracks intentional deviations from the original PRD, TRD, and Design.m
 **Why:** The AI fabricates a timestamp (first run returned "2023-10-24") which is meaningless. The real creation time should reflect when the structure was actually generated.
 
 **Affects:** TRD §3.1, `api/structure.ts`
+
+---
+
+### 2026-07-24 — Robust AI JSON extraction
+
+**What:** Added multi-stage JSON extraction in both `/api` endpoints. If the AI response isn't valid JSON on first parse, the code now strips markdown fences and any text before the first `{` / after the last `}` before retrying, rather than immediately failing.
+
+**Why:** The `gemini-3.6-flash` model sometimes wraps JSON in markdown fences or includes brief commentary before/after the JSON block, which caused a 500 error when it happened. The extraction pipeline makes the endpoint resilient to these common AI output patterns.
+
+**Affects:** `api/structure.ts`, `api/chat.ts`
+
+---
+
+### 2026-07-24 — Switched to Gemini-native `systemInstruction` field
+
+**What:** Moved system prompts from being sent as a `user` part in the `contents` array to using Gemini's dedicated `systemInstruction` block. The request body now has `systemInstruction: { parts: [{ text: prompt }] }` alongside `contents`.
+
+**Why:** Google's API docs recommend this for proper system prompt handling. The previous approach bundled the system prompt as an additional user message part, which could confuse the model about which text is the instruction vs the actual user query.
+
+**Affects:** `api/structure.ts`, `api/chat.ts`
