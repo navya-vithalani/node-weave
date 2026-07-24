@@ -1,0 +1,192 @@
+/* ============================================================
+   Boot Tutorial Modal — Phase 1
+   Design.md §2 — Phase 1: Boot-up tutorial modal
+   ============================================================ */
+
+/* ---- Overlay ---- */
+
+.boot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 1rem;
+}
+
+/* ---- Modal box ---- */
+
+.boot-modal {
+  width: 100%;
+  max-width: 520px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 2rem 2rem 1.5rem;
+  box-shadow:
+    0 0 24px var(--accent-glow),
+    0 4px 16px rgba(0, 0, 0, 0.5);
+  animation: boot-modal-in 0.3s ease-out;
+}
+
+@keyframes boot-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Step header ---- */
+
+.boot-modal__step-header {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.25rem;
+  user-select: none;
+  line-height: 1;
+}
+
+.boot-modal__step-num {
+  color: var(--text);
+  opacity: 0.45;
+}
+
+.boot-modal__step-sep {
+  color: var(--accent);
+  opacity: 0.4;
+}
+
+.boot-modal__step-title {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ---- Content area ---- */
+
+.boot-modal__content {
+  font-size: 0.875rem;
+  line-height: 1.8;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  min-height: 4.5em;
+}
+
+.boot-modal__content p {
+  margin: 0;
+}
+
+/* Fade transition between steps */
+.boot-modal__content-enter {
+  animation: boot-content-in 0.2s ease-out;
+}
+
+@keyframes boot-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- Progress dots ---- */
+
+.boot-modal__progress {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  justify-content: flex-end;
+}
+
+.boot-modal__dot {
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--border);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.boot-modal__dot--active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---- Controls ---- */
+
+.boot-modal__controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.boot-modal__btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: color 0.15s ease,
+              border-color 0.15s ease,
+              background-color 0.15s ease,
+              box-shadow 0.15s ease;
+  line-height: 1;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.boot-modal__btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* ---- Skip button ---- */
+
+.boot-modal__btn--skip {
+  opacity: 0.45;
+}
+
+.boot-modal__btn--skip:hover,
+.boot-modal__btn--skip:focus-visible {
+  opacity: 1;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ---- Next / Complete button ---- */
+
+.boot-modal__btn--next {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.boot-modal__btn--next:hover {
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 0 12px var(--accent-glow-strong);
+}
+
+/* ---- Disabled state (if ever needed) ---- */
+
+.boot-modal__btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.boot-modal__btn:disabled:hover {
+  background: transparent;
+  color: var(--text);
+  box-shadow: none;
+}

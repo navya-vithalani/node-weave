@@ -33,7 +33,7 @@ if (!API_URL || !STRUCTURE_PATH) {
 
 // Read the test documents and structure output
 function loadTestDocs() {
-  const testDataDir = path.join(__dirname, 'test-data')
+  const testDataDir = path.join(__dirname, '..', 'test-data')
   const files = fs.readdirSync(testDataDir)
     .filter(f => f.endsWith('.md') || f.endsWith('.txt'))
     .sort()

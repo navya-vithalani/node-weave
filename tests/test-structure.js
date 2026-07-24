@@ -20,7 +20,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const TEST_DATA_DIR = path.join(__dirname, 'test-data')
+const TEST_DATA_DIR = path.join(__dirname, '..', 'test-data')
 const API_URL = process.argv[2] || 'http://localhost:5173/api/structure'
 
 async function main() {
