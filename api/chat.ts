@@ -9,9 +9,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { query, retrievedChunks, relevantJsonSlice, chatHistory } = req.body
 
-    if (!query) {
-      return res.status(400).json({ error: 'query is required' })
+    if (!query || typeof query !== 'string' || !query.trim()) {
+      return res.status(400).json({ error: 'query is required and must be a non-empty string' })
     }
+
+    // Safeguard: limit chat history to last 20 turns to protect context window
+    const truncatedHistory = Array.isArray(chatHistory)
+      ? chatHistory.slice(-20)
+      : []
+
+    // Safeguard: limit each retrieved chunk to ~2000 chars
+    const truncatedChunks = (Array.isArray(retrievedChunks) ? retrievedChunks : []).map((c: { id?: string; text?: string }) => ({
+      id: c.id || 'unknown',
+      text: (c.text || '').slice(0, 2000),
+    }))
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY
     if (!GEMINI_API_KEY) {
@@ -38,9 +49,9 @@ Respond with a JSON object of this exact shape:
 
     const userPrompt = JSON.stringify({
       query,
-      retrievedChunks,
+      retrievedChunks: truncatedChunks,
       relevantJsonSlice,
-      chatHistory,
+      chatHistory: truncatedHistory,
     })
 
     const geminiRes = await fetch(
