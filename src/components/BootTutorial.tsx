@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "../styles/boot-tutorial.css";
+import {
+  THEMES,
+  applyTheme,
+  loadSavedTheme,
+} from "../lib/theme";
+import type { ThemeName } from "../lib/theme";
 
 interface BootTutorialProps {
   onComplete: () => void;
@@ -7,6 +13,12 @@ interface BootTutorialProps {
 }
 
 const STEPS = [
+  {
+    eyebrow: "00 • WELCOME",
+    title: "Welcome.",
+    content:
+      "This is a place for curious learners, and graphic visualisers. See complex concepts arrange themselves into meaningful connections and enjoy!",
+  },
   {
     eyebrow: "01 • BUILD THE FIRST MAP",
     title: "Let AI handle the first draft.",
@@ -25,6 +37,12 @@ const STEPS = [
     content:
       "Everything stays inside your browser unless you deliberately ask the AI a question. Export your workspace whenever you want and keep complete ownership of your graph.",
   },
+  {
+    eyebrow: "04 • PICK YOUR THEME",
+    title: "Make it yours.",
+    content:
+      "Choose a colour that suits your style. You can always change it later from the workspace.",
+  },
 ];
 
 /*
@@ -42,7 +60,7 @@ type AnimPhase =
   | "typing-content"
   | "idle";
 
-const TYPING_MS = { title: 35, content: 14 };
+const TYPING_MS = { word: 80, content: 22 };
 
 export default function BootTutorial({
   onComplete,
@@ -50,7 +68,7 @@ export default function BootTutorial({
 }: BootTutorialProps) {
   const [step, setStep] = useState(0);
   const [animPhase, setAnimPhase] = useState<AnimPhase>("entering");
-  const [typedTitleLen, setTypedTitleLen] = useState(0);
+  const [typedWords, setTypedWords] = useState(0);
   const [typedContentLen, setTypedContentLen] = useState(0);
 
   const entryDone = useRef(false);
@@ -60,6 +78,32 @@ export default function BootTutorial({
   const cornerTRRef = useRef<HTMLSpanElement>(null);
   const cornerBLRef = useRef<HTMLSpanElement>(null);
   const cornerBRRef = useRef<HTMLSpanElement>(null);
+
+  const [selectedTheme, setSelectedTheme] = useState<ThemeName>(() => {
+    return loadSavedTheme() || "orange";
+  });
+
+  const [barInit, setBarInit] = useState(false);
+
+  /* ── animate progress bar from 0 on first load ── */
+
+  useEffect(() => {
+    if (animPhase === "typing-title" && !barInit) {
+      const t = setTimeout(() => setBarInit(true), 200);
+      return () => clearTimeout(t);
+    }
+  }, [animPhase, barInit]);
+
+  /* ── re-arm barInit on step changes ── */
+
+  useEffect(() => {
+    if (entryDone.current) setBarInit(true);
+  }, [step]);
+
+  const handleThemeChange = useCallback((name: ThemeName) => {
+    setSelectedTheme(name);
+    applyTheme(name);
+  }, []);
 
   const current = STEPS[step];
 
@@ -109,7 +153,7 @@ export default function BootTutorial({
         cornerRefs.forEach((ref) => {
           if (!ref.current) return;
           ref.current.style.transition =
-            "transform 1.5s cubic-bezier(.22,.9,.2,1), opacity 0.4s ease";
+            "transform 1.0s cubic-bezier(0.4, 0, 0.1, 1), opacity 0.3s ease";
           ref.current.style.transform = "translate(0, 0)";
           ref.current.style.opacity = "1";
         });
@@ -119,20 +163,20 @@ export default function BootTutorial({
       setTimeout(() => {
         cornerRefs.forEach((ref) => {
           if (!ref.current) return;
-          ref.current.style.transition = "all 0.5s ease";
-          ref.current.style.borderWidth = "1px";
-          ref.current.style.borderColor = "rgba(255,255,255,.08)";
+          ref.current.style.transition = "all 0.3s ease";
+          ref.current.style.borderWidth = "2px";
+          ref.current.style.borderColor = "rgba(255,255,255,.25)";
           ref.current.style.width = "18px";
           ref.current.style.height = "18px";
           ref.current.style.borderRadius = "0";
           ref.current.style.background = "transparent";
         });
         setAnimPhase("reveal");
-      }, 1600);
+      }, 1100); // 1.0s spread + 0.1s buffer
     };
 
     collapseToCentre();
-    const t = setTimeout(() => spreadToCorners(), 600);
+    const t = setTimeout(() => spreadToCorners(), 400);
     return () => clearTimeout(t);
   }, []);
 
@@ -143,26 +187,27 @@ export default function BootTutorial({
     const t = setTimeout(() => {
       entryDone.current = true;
       setAnimPhase("typing-title");
-    }, 700);
+    }, 1000);
     return () => clearTimeout(t);
   }, [animPhase]);
 
   /* ===========================================================
-     TYPING — character-by-character
+     TYPING — word-by-word (title) + character-by-character (content)
      =========================================================== */
 
   useEffect(() => {
     if (animPhase !== "typing-title") return;
-    if (typedTitleLen >= current.title.length) {
-      setAnimPhase("typing-content");
-      return;
+    const words = current.title.split(/\s+/);
+    if (typedWords >= words.length) {
+      const t = setTimeout(() => setAnimPhase("typing-content"), 200);
+      return () => clearTimeout(t);
     }
     const t = setTimeout(
-      () => setTypedTitleLen((l) => l + 1),
-      TYPING_MS.title,
+      () => setTypedWords((w) => w + 1),
+      TYPING_MS.word,
     );
     return () => clearTimeout(t);
-  }, [animPhase, typedTitleLen, current.title]);
+  }, [animPhase, typedWords, current.title]);
 
   useEffect(() => {
     if (animPhase !== "typing-content") return;
@@ -184,7 +229,7 @@ export default function BootTutorial({
   useEffect(() => {
     if (!entryDone.current) return;
     setAnimPhase("typing-title");
-    setTypedTitleLen(0);
+    setTypedWords(0);
     setTypedContentLen(0);
   }, [step]);
 
@@ -222,12 +267,18 @@ export default function BootTutorial({
      DERIVED STATE
      =========================================================== */
 
-  const isTyping =
-    animPhase === "typing-title" || animPhase === "typing-content";
   const contentVisible =
     animPhase === "typing-content" || animPhase === "idle";
   const revealReady =
     animPhase !== "entering" && animPhase !== "corners";
+  const titleWords = current.title.split(/\s+/);
+  const SEGMENTS = 3;
+  const segmentProgress =
+    animPhase === "typing-title" ? 1 :
+    animPhase === "typing-content" ? 2 :
+    animPhase === "idle" ? 3 : 0;
+  const barPct = step === 0 ? 0
+    : (((step - 1) + segmentProgress / SEGMENTS) / (STEPS.length - 1)) * 100;
 
   /* ===========================================================
      RENDER
@@ -235,7 +286,10 @@ export default function BootTutorial({
 
   return (
     <div className="boot-overlay">
-      <div className="boot-modal" ref={modalRef}>
+      <div
+        className={`boot-modal${!revealReady ? " boot-modal--content-hidden" : ""}`}
+        ref={modalRef}
+      >
         {/* ---- decorative corners ---- */}
         <span className="boot-corner boot-corner--tl" ref={cornerTLRef} />
         <span className="boot-corner boot-corner--tr" ref={cornerTRRef} />
@@ -247,9 +301,7 @@ export default function BootTutorial({
           <div className="boot-brand">
             <span className="boot-brand__eyebrow">KNOWLEDGE WORKSTATION</span>
             <h1
-              className={`boot-brand__title${
-                isTyping ? " boot-brand__title--typing" : ""
-              }`}
+              className={`boot-brand__title${ " boot-brand__title--typing" }`}
             >
               NodeWeave
             </h1>
@@ -271,12 +323,7 @@ export default function BootTutorial({
         </header>
 
         {/* ---------------- STEP HEADER ---------------- */}
-        <div
-          className={`boot-modal__step-header ${
-            revealReady ? "reveal-item--visible" : "reveal-item"
-          }`}
-          style={{ transitionDelay: revealReady ? "0s" : "0.1s" }}
-        >
+        <div className="boot-modal__step-header">
           <span className="boot-modal__step-num">
             {current.eyebrow}
           </span>
@@ -294,13 +341,16 @@ export default function BootTutorial({
                 minHeight: "2.4rem",
               }}
             >
-              {current.title.slice(0, typedTitleLen)}
+              {titleWords.slice(0, typedWords).map((word, i) => (
+                <span key={i} className="title-word title-word--visible">{word}</span>
+              ))}
               {animPhase === "typing-title" && <span className="typing-cursor" />}
             </h2>
 
             <p
               style={{
                 minHeight: contentVisible ? "auto" : "3.2rem",
+                ...(step === 0 && contentVisible ? { color: "var(--accent)", fontStyle: "italic", textAlign: "center", fontFamily: "var(--font-friendly)" } : {}),
               }}
             >
               {contentVisible && current.content.slice(0, typedContentLen)}
@@ -308,35 +358,47 @@ export default function BootTutorial({
                 <span className="typing-cursor" />
               )}
             </p>
+
+            {/* ── theme picker (shows as soon as step 4 heading appears) ── */}
+            {step === 4 && (animPhase === "typing-title" || animPhase === "typing-content" || animPhase === "idle") && (
+              <div className="theme-picker">
+                {(Object.entries(THEMES) as [ThemeName, (typeof THEMES)[ThemeName]][]).map(
+                  ([name, theme]) => (
+                    <button
+                      key={name}
+                      className={`theme-swatch${
+                        selectedTheme === name ? " theme-swatch--selected" : ""
+                      }`}
+                      style={{ backgroundColor: theme.accent }}
+                      onClick={() => handleThemeChange(name)}
+                      aria-label={name}
+                      title={name.charAt(0).toUpperCase() + name.slice(1)}
+                    />
+                  ),
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* ---------------- PROGRESS ---------------- */}
-        <div
-          className={`boot-modal__progress ${
-            revealReady ? "reveal-item--visible" : "reveal-item"
-          }`}
-          style={{ transitionDelay: revealReady ? "0s" : "0.2s" }}
-        >
-          {STEPS.map((_, i) => (
-            <span
-              key={i}
-              className={`boot-modal__dot ${
-                i <= step ? "boot-modal__dot--active" : ""
-              }`}
-            />
-          ))}
+        <div className="boot-modal__progress">
+          <div className="progress-bar-wrapper">
+            <div className="progress-bar">
+              <div className="progress-bar__fill" style={{ width: barInit ? `${barPct}%` : '0%' }} />
+            </div>
+            <div className="progress-cat" style={{ left: barInit ? `${barPct}%` : '0%' }}>
+              <div className="progress-cat__bob">
+                <pre className="progress-cat__art">{` /\\_/\\ \n( ｡ꞈ｡ )\n > ^ < `}</pre>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ---------------- FOOTER ---------------- */}
-        <footer
-          className={`boot-footer ${
-            revealReady ? "reveal-item--visible" : "reveal-item"
-          }`}
-          style={{ transitionDelay: revealReady ? "0s" : "0.3s" }}
-        >
+        <footer className="boot-footer">
           <div className="boot-footer__hint">
-            STEP {step + 1} OF {STEPS.length}
+            {`STEP ${step} OF 4`}
           </div>
 
           <div className="boot-actions">

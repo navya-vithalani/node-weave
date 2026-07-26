@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import BootTutorial from './components/BootTutorial';
+import { applyTheme, loadSavedTheme } from './lib/theme';
 
 /* ---------------------------------------------------------------
    App — Root component
@@ -15,6 +16,13 @@ type AppPhase = 'boot' | 'upload' | 'loading' | 'dashboard';
 
 function App() {
   const [phase, setPhase] = useState<AppPhase>('boot');
+
+  /* ---- Load saved theme ---- */
+
+  useEffect(() => {
+    const saved = loadSavedTheme();
+    if (saved) applyTheme(saved);
+  }, []);
 
   /* ---- Tutorial lifecycle ---- */
 
