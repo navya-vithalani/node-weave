@@ -20,10 +20,10 @@ Dark mode palette (no light mode). All values are the actual CSS custom properti
 
 | Token | Value | Usage |
 |---|---|---|
-| `--bg` | `#111315` | App background |
-| `--bg-elev` | `#171a1f` | Elevated surfaces |
-| `--panel` | `#1d2127` | Card/modal backgrounds |
-| `--panel-2` | `#232830` | Nested panel backgrounds |
+| `--bg` | `#1d2127` | App background |
+| `--bg-elev` | `#222831` | Elevated surfaces |
+| `--panel` | `#232830` | Card/modal backgrounds |
+| `--panel-2` | `#2a323c` | Nested panel backgrounds |
 | `--text` | `#f2efe8` | Primary text |
 | `--muted` | `#8d95a3` | Secondary/label text |
 | `--border` | `#2e353e` | Structural borders |
