@@ -51,3 +51,43 @@ This file tracks intentional deviations from the original PRD, TRD, and Design.m
 **Why:** Google's API docs recommend this for proper system prompt handling. The previous approach bundled the system prompt as an additional user message part, which could confuse the model about which text is the instruction vs the actual user query.
 
 **Affects:** `api/structure.ts`, `api/chat.ts`
+
+---
+
+### 2026-08-28 — Added "Topic Only" guide item with AI prompt
+
+**What:** Added a new guide item in the Upload tab that lets users generate structured markdown files using an external AI. The item includes a subtle "Copy prompt" link (italic, accent color, hover effects) that copies a prompt to the clipboard.
+
+**Why:** Users may want to create knowledge graphs about topics they don't have local sources for. This provides a workflow: copy prompt → send to any AI → save output as .md/.txt → upload to NodeWeave.
+
+**Affects:** `Uploader.tsx` (guide section), `uploader-ext.css` (copy prompt styling)
+
+**TODO:** Fill in the actual prompt text for AI to generate descriptive markdown.
+
+---
+
+### 2026-08-28 — Multiple session merge in Restore tab
+
+**What:** Changed Restore tab to accept multiple JSON session files instead of just one. Files accumulate in a list (like the Upload tab's file list). When continuing:
+- **One session:** goes directly to dashboard
+- **Multiple sessions:** sent separately to AI for merging
+
+Session name defaults to "FirstSessionName - 2" and is editable. Users can remove individual sessions from the list.
+
+**Why:** Users may want to combine multiple knowledge graphs into one. Sending sessions separately to AI preserves context while allowing the AI to handle deduplication and connection generation.
+
+**Affects:** `Uploader.tsx` (import handlers, file list, continue logic), `App.tsx` (UploaderData interface)
+
+**TODO:** Fill in the merge prompt for AI to combine multiple sessions.
+
+---
+
+### 2026-08-28 — Session name handling in Uploader
+
+**What:** Added editable session name input to both tabs with default behaviors:
+- **Upload:** defaults to "Untitled Session" if empty
+- **Restore:** defaults to "FirstSessionName - 2" on first import
+
+**Why:** Users should be able to name their sessions. For Restore, a default that appends " - 2" provides a clear indication that this is a new, merged session.
+
+**Affects:** `Uploader.tsx` (session input in Restore tab), `App.tsx` (UploaderData handling)

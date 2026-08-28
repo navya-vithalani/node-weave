@@ -20,7 +20,7 @@ type AppPhase = 'boot' | 'upload' | 'loading' | 'dashboard';
 interface UploaderData {
   sessionName: string;
   files: { id: string; name: string; type: string; size: number; content?: string }[];
-  importedSession: OriginalStructure | null;
+  importedSessions: OriginalStructure[];
 }
 
 function App() {

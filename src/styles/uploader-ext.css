@@ -238,28 +238,30 @@
 	font-family:var(--font-mono);
 }
 
-/* ---------- buttons ---------- */
+/* ---------- copy prompt (in guide) ---------- */
 
-.uploader__btn:disabled{
-	opacity:.4;
-	cursor:not-allowed;
+.uploader__copy-prompt{
+	background:none;
+	border:none;
+	padding:0;
+	margin-top:6px;
+	font-family:var(--font-mono);
+	font-size:.75rem;
+	color:var(--accent);
+	cursor:pointer;
+	font-style:italic;
+	transition:opacity .2s;
 }
 
-.uploader__btn:disabled:hover{
-	transform:none;
-	background:rgba(var(--accent-r), var(--accent-g), var(--accent-b),.08);
-	box-shadow:none;
+.uploader__copy-prompt:hover{
+	opacity:.7;
+}
+
+.uploader__copy-prompt:active{
+	opacity:.5;
 }
 
 /* ---------- file list ---------- */
-
-.uploader__file-list{
-	width:100%;
-	margin-top:20px;
-	display:flex;
-	flex-direction:column;
-	gap:8px;
-}
 
 .uploader__file-item{
 	display:flex;

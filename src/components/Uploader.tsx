@@ -14,22 +14,20 @@ interface UploaderProps {
   onContinue: (data: {
     sessionName: string;
     files: UploadedFile[];
-    importedSession: OriginalStructure | null;
+    importedSessions: OriginalStructure[];
   }) => void;
 }
 
 type Tab = 'upload' | 'restore';
-type ExportType = 'original' | 'working' | null;
 
 export default function Uploader({ onContinue }: UploaderProps) {
   const [tab, setTab] = useState<Tab>('upload');
   const [sessionName, setSessionName] = useState('');
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
+  const [importedSessions, setImportedSessions] = useState<OriginalStructure[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
-  const [importedSession, setImportedSession] = useState<OriginalStructure | null>(null);
-  const [exportType, setExportType] = useState<ExportType>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
   const restoreInputRef = useRef<HTMLInputElement>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -92,7 +90,6 @@ export default function Uploader({ onContinue }: UploaderProps) {
   const validateAndImport = useCallback(async (file: File) => {
     setIsValidating(true);
     setValidationError(null);
-    setExportType(null);
     try {
       const text = await file.text();
       const data = JSON.parse(text) as OriginalStructure;
@@ -102,12 +99,14 @@ export default function Uploader({ onContinue }: UploaderProps) {
         return false;
       }
 
-      // Determine export type
-      const isWorking = 'modified' in data && data.modified === true && 'customInsights' in data;
-      setExportType(isWorking ? 'working' : 'original');
-
-      setSessionName(data.sessionName);
-      setImportedSession(data);
+      setImportedSessions(prev => {
+        const newSessions = [...prev, data];
+        // Set session name from first session if not set
+        if (prev.length === 0) {
+          setSessionName(`${data.sessionName} - 2`);
+        }
+        return newSessions;
+      });
       return true;
     } catch {
       setValidationError('Invalid session file. Could not parse JSON.');
@@ -117,26 +116,28 @@ export default function Uploader({ onContinue }: UploaderProps) {
     }
   }, []);
 
-  const handleClearImport = useCallback(() => {
-    setImportedSession(null);
-    setSessionName('');
+  const handleClearImport = useCallback((index?: number) => {
+    if (index !== undefined) {
+      setImportedSessions(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setImportedSessions([]);
+    }
     setValidationError(null);
-    setExportType(null);
-    // Reset file input for single-file cap
+    // Reset file input
     if (restoreInputRef.current) {
       restoreInputRef.current.value = '';
     }
   }, []);
 
   const handleRestoreSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Clear previous import first (single-file cap)
-    if (importedSession) {
-      handleClearImport();
-    }
     if (e.target.files && e.target.files.length > 0) {
       await validateAndImport(e.target.files[0]);
+      // Reset input for re-select
+      if (restoreInputRef.current) {
+        restoreInputRef.current.value = '';
+      }
     }
-  }, [validateAndImport, importedSession, handleClearImport]);
+  }, [validateAndImport]);
 
   /* ---- Drag & drop ---- */
 
@@ -162,12 +163,16 @@ export default function Uploader({ onContinue }: UploaderProps) {
   /* ---- Continue ---- */
 
   const handleContinue = useCallback(() => {
-    onContinue({ sessionName, files, importedSession });
-  }, [onContinue, sessionName, files, importedSession]);
+    onContinue({
+      sessionName: sessionName || 'Untitled Session',
+      files,
+      importedSessions
+    });
+  }, [onContinue, sessionName, files, importedSessions]);
 
   const canContinue = tab === 'upload'
     ? files.length > 0
-    : importedSession !== null;
+    : importedSessions.length > 0;
 
   /* ---- Helpers ---- */
 
@@ -177,7 +182,16 @@ export default function Uploader({ onContinue }: UploaderProps) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  /* ---- Render ---- */
+  /* ---- Copy prompt helper ---- */
+  const copyToClipboard = useCallback(async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Silently fail on clipboard error
+    }
+  }, []);
+
+/* ---- Render ---- */
 
   return (
     <main className="uploader">
@@ -237,6 +251,16 @@ export default function Uploader({ onContinue }: UploaderProps) {
                 <li>
                   <strong>Handwritten notes</strong>
                   <span className="uploader__guide-desc">Scan with a text-extraction tool and drop the .txt file.</span>
+                </li>
+                <li>
+                  <strong>Topic Only</strong>
+                  <span className="uploader__guide-desc">No sources? Describe your topic and let an AI generate a structured markdown file.</span>
+                  <button
+                    className="uploader__copy-prompt"
+                    onClick={() => copyToClipboard('// TODO: Add topic-only prompt here')}
+                  >
+                    Copy prompt for AI ▸
+                  </button>
                 </li>
               </ul>
             </div>
@@ -352,9 +376,6 @@ export default function Uploader({ onContinue }: UploaderProps) {
                 e.preventDefault();
                 e.stopPropagation();
                 if (e.dataTransfer.files.length > 0) {
-                  if (importedSession) {
-                    handleClearImport();
-                  }
                   validateAndImport(e.dataTransfer.files[0]);
                 }
               }}
@@ -365,41 +386,63 @@ export default function Uploader({ onContinue }: UploaderProps) {
                 ref={restoreInputRef}
                 type="file"
                 accept=".json"
+                multiple
                 onChange={handleRestoreSelect}
                 style={{ display: 'none' }}
-                disabled={importedSession !== null || isValidating}
+                disabled={isValidating}
               />
               <div className="uploader__dropzone-content">
                 <span className="uploader__dropzone-icon">↓</span>
                 <p className="uploader__dropzone-text">
-                  Drop your <span className="uploader__accent">.json</span> session file here
+                  Drop <span className="uploader__accent">.json</span> session files here
                 </p>
                 <p className="uploader__hint">or click to browse</p>
               </div>
+
+              {importedSessions.length > 0 && (
+                <div className="uploader__file-list">
+                  {importedSessions.map((session, index) => {
+                    const isWorking = 'modified' in session && session.modified === true && 'customInsights' in session;
+                    return (
+                      <div key={index} className="uploader__file-item">
+                        <span className="uploader__file-icon">📁</span>
+                        <span className="uploader__file-name">{session.sessionName}</span>
+                        <span className="uploader__file-size">{session.topics.length} topics</span>
+                        <span className={`uploader__imported-badge ${isWorking ? '' : 'uploader__imported-badge--original'}`}>
+                          {isWorking ? 'Working' : 'Original'}
+                        </span>
+                        <button
+                          className="uploader__file-remove"
+                          onClick={(e) => { e.stopPropagation(); handleClearImport(index); }}
+                          title="Remove session"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* ---- Restore: Imported session info ---- */}
-            {importedSession && (
-              <div className="uploader__imported">
-                <div className="uploader__imported-info">
-                  <span className="uploader__imported-name">{importedSession.sessionName}</span>
-                  <span className="uploader__imported-meta">
-                    {importedSession.topics.length} topics •{' '}
-                    {new Date(importedSession.createdAt).toLocaleDateString()}
-                    <span className="uploader__imported-badge">
-                      {exportType === 'working' ? 'Working Export' : 'Original Export'}
-                    </span>
-                  </span>
-                </div>
-                <button
-                  className="uploader__import-clear"
-                  onClick={handleClearImport}
-                  title="Clear import"
-                >
-                  ×
-                </button>
-              </div>
+            {/* ---- Restore: Validation error ---- */}
+            {validationError && (
+              <div className="uploader__error">{validationError}</div>
             )}
+
+            {/* ---- Restore: Session name ---- */}
+            <div className="uploader__session">
+              <label className="uploader__session-label">
+                <span className="terminal-label">SESSION NAME</span>
+                <input
+                  className="uploader__session-input"
+                  type="text"
+                  placeholder="Merged Session"
+                  value={sessionName}
+                  onChange={(e) => setSessionName(e.target.value)}
+                />
+              </label>
+            </div>
           </>
         )}
 
