@@ -1,0 +1,309 @@
+/* ===========================================================
+   UPLOADER EXTENSIONS (file list, import, states)
+=========================================================== */
+
+/* ---------- tabs ---------- */
+
+.uploader__tabs{
+	display:flex;
+	gap:0;
+	margin-bottom:24px;
+	border:1px solid var(--border);
+}
+
+.uploader__tab{
+	flex:1;
+	padding:14px 20px;
+	background:var(--bg-elev);
+	border:none;
+	color:var(--muted);
+	font-family:var(--font-body);
+	font-size:.9rem;
+	font-weight:500;
+	cursor:pointer;
+	transition:all .2s;
+}
+
+.uploader__tab:first-child{
+	border-right:1px solid var(--border);
+}
+
+.uploader__tab:hover{
+	color:var(--text);
+}
+
+.uploader__tab--active{
+	background:var(--panel);
+	color:var(--accent);
+}
+
+.uploader__tab-desc{
+	margin:-8px 0 20px;
+	font-size:.9rem;
+	color:var(--muted);
+	line-height:1.5;
+}
+
+/* ---------- errors ---------- */
+
+.uploader__errors{
+	width:100%;
+	margin-top:16px;
+	display:flex;
+	flex-direction:column;
+	gap:6px;
+}
+
+.uploader__error{
+	padding:10px 14px;
+	background:rgba(255,123,114,.08);
+	border:1px solid rgba(255,123,114,.3);
+	color:var(--danger);
+	font-size:.85rem;
+}
+
+/* ---------- restore ---------- */
+
+.uploader__restore{
+	display:flex;
+	flex-direction:column;
+	gap:12px;
+}
+
+.uploader__restore-text{
+	font-size:.95rem;
+	color:var(--muted);
+}
+
+.uploader__restore-btn{
+	align-self:flex-start;
+	padding:12px 22px;
+	background:rgba(var(--accent-r), var(--accent-g), var(--accent-b),.06);
+	border:1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b),.15);
+	color:var(--text);
+	font-family:var(--font-body);
+	font-size:.9rem;
+	font-weight:500;
+	cursor:pointer;
+	transition:all .22s;
+}
+
+.uploader__restore-btn:hover:not(:disabled){
+	border-color:var(--accent);
+	color:var(--accent);
+}
+
+.uploader__restore-btn:disabled{
+	opacity:.6;
+	cursor:not-allowed;
+}
+
+.uploader__restore-actions{
+	display:flex;
+	gap:12px;
+}
+
+.uploader__restore-actions:has(.uploader__restore-btn[disabled]) .uploader__restore-btn::after{
+	content:"Only one file allowed. Remove existing to add another.";
+	position:absolute;
+	bottom:100%;
+	left:50%;
+	transform:translateX(-50%);
+	margin-bottom:8px;
+	padding:6px 10px;
+	background:var(--danger);
+	color:#fff;
+	font-size:.75rem;
+	white-space:nowrap;
+	border-radius:4px;
+	opacity:0;
+	visibility:hidden;
+	transition:opacity .2s, visibility .2s;
+	pointer-events:none;
+	z-index:10;
+}
+
+/* ---------- imported session (restore tab) ---------- */
+
+.uploader__imported{
+	display:flex;
+	align-items:center;
+	gap:12px;
+	padding:16px;
+	background:var(--bg-elev);
+	border:1px solid var(--border);
+	margin-top:16px;
+}
+
+.uploader__imported-info{
+	flex:1;
+	display:flex;
+	flex-direction:column;
+	gap:4px;
+}
+
+.uploader__imported-name{
+	font-weight:500;
+}
+
+.uploader__imported-meta{
+	font-family:var(--font-mono);
+	font-size:.78rem;
+	color:var(--muted);
+	display:flex;
+	align-items:center;
+	gap:8px;
+}
+
+.uploader__imported-badge{
+	padding:3px 8px;
+	background:rgba(var(--accent-r), var(--accent-g), var(--accent-b),.1);
+	border:1px solid rgba(var(--accent-r), var(--accent-g), var(--accent-b),.2);
+	color:var(--accent);
+	font-size:.7rem;
+	text-transform:uppercase;
+	letter-spacing:.05em;
+}
+
+.uploader__import-clear{
+	width:28px;
+	height:28px;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	background:none;
+	border:none;
+	color:var(--muted);
+	font-size:1.3rem;
+	cursor:pointer;
+	transition:color .2s;
+}
+
+.uploader__import-clear:hover{
+	color:var(--danger);
+}
+
+/* ---------- upload errors (below dropzone) ---------- */
+
+.uploader__upload-errors{
+	margin-top:16px;
+	border:1px solid rgba(255,123,114,.3);
+	background:rgba(255,123,114,.04);
+}
+
+.uploader__upload-errors-header{
+	display:flex;
+	justify-content:space-between;
+	align-items:center;
+	padding:10px 14px;
+	background:rgba(255,123,114,.08);
+	border-bottom:1px solid rgba(255,123,114,.15);
+}
+
+.uploader__upload-errors-title{
+	font-size:.85rem;
+	font-weight:600;
+	color:var(--danger);
+}
+
+.uploader__upload-errors-dismiss{
+	width:24px;
+	height:24px;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	background:none;
+	border:none;
+	color:var(--muted);
+	font-size:1.2rem;
+	cursor:pointer;
+	transition:color .2s;
+}
+
+.uploader__upload-errors-dismiss:hover{
+	color:var(--text);
+}
+
+.uploader__upload-errors-list{
+	list-style:none;
+	padding:10px 14px;
+	display:flex;
+	flex-direction:column;
+	gap:4px;
+}
+
+.uploader__upload-error-item{
+	font-size:.85rem;
+	color:var(--danger);
+	font-family:var(--font-mono);
+}
+
+/* ---------- buttons ---------- */
+
+.uploader__btn:disabled{
+	opacity:.4;
+	cursor:not-allowed;
+}
+
+.uploader__btn:disabled:hover{
+	transform:none;
+	background:rgba(var(--accent-r), var(--accent-g), var(--accent-b),.08);
+	box-shadow:none;
+}
+
+/* ---------- file list ---------- */
+
+.uploader__file-list{
+	width:100%;
+	margin-top:20px;
+	display:flex;
+	flex-direction:column;
+	gap:8px;
+}
+
+.uploader__file-item{
+	display:flex;
+	align-items:center;
+	gap:12px;
+	padding:10px 14px;
+	background:var(--bg-elev);
+	border:1px solid var(--border);
+	font-size:.9rem;
+}
+
+.uploader__file-icon{
+	font-size:1.1rem;
+}
+
+.uploader__file-name{
+	flex:1;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	white-space:nowrap;
+}
+
+.uploader__file-size{
+	font-family:var(--font-mono);
+	font-size:.78rem;
+	color:var(--muted);
+}
+
+.uploader__file-remove{
+	width:24px;
+	height:24px;
+	display:flex;
+	align-items:center;
+	justify-content:center;
+	background:none;
+	border:none;
+	color:var(--muted);
+	font-size:1.2rem;
+	cursor:pointer;
+	transition:color .2s;
+}
+
+.uploader__file-remove:hover{
+	color:var(--danger);
+}
+
+/* ========== old import styles (removed - using tabbed layout) ========== */

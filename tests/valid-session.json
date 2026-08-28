@@ -1,0 +1,20 @@
+{
+  "sessionName": "Machine Learning Basics",
+  "createdAt": "2025-01-15T10:30:00.000Z",
+  "topics": [
+    {
+      "id": "topic-1",
+      "name": "Introduction to ML",
+      "summary": "Overview of machine learning concepts and applications",
+      "subtopics": []
+    },
+    {
+      "id": "topic-2",
+      "name": "Supervised Learning",
+      "summary": "Learning from labeled training data",
+      "subtopics": []
+    }
+  ],
+  "connections": [],
+  "customInsights": []
+}
