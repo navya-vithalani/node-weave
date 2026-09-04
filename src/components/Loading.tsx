@@ -74,7 +74,7 @@ const CAT_FRAMES = [
       \\___/`,
 ];
 
-export default function Loading({ sessionName, status, error, onBackToUpload, isComplete }: LoadingProps) {
+export default function Loading({ status, error, onBackToUpload, isComplete }: LoadingProps) {
   const [visibleLines, setVisibleLines] = useState<number[]>([]);
   const [currentCatFrame, setCurrentCatFrame] = useState(0);
   const [streamedText, setStreamedText] = useState('');
@@ -154,7 +154,7 @@ export default function Loading({ sessionName, status, error, onBackToUpload, is
 
       // Creative messages after 15 seconds
       const creativeTimeout = setTimeout(() => {
-        CREATIVE_WAIT_MESSAGES.forEach((msg, index) => {
+        CREATIVE_WAIT_MESSAGES.forEach((_, index) => {
           const timeout = setTimeout(() => {
             setVisibleLines(prev => [...prev, 1000 + index]);
             logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });

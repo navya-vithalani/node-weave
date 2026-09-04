@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import type { OriginalStructure, Topic, Connection } from '../types/schema';
+import type { OriginalStructure } from '../types/schema';
 import '../styles/dashboard.css';
 
 interface DashboardProps {
@@ -45,7 +45,7 @@ export default function Dashboard({ sessionName, structure }: DashboardProps) {
       // Add topic node
       nodes.push({
         id: `topic-${topicIndex}`,
-        label: topic.title,
+        label: topic.name,
         type: 'topic',
         x: 200 + topicIndex * 300,
         y: 100
@@ -55,7 +55,7 @@ export default function Dashboard({ sessionName, structure }: DashboardProps) {
         topic.subtopics.forEach((subtopic, subIndex) => {
           nodes.push({
             id: `subtopic-${topicIndex}-${subIndex}`,
-            label: subtopic.title,
+            label: subtopic.name,
             type: 'subtopic',
             parentId: `topic-${topicIndex}`,
             x: 200 + topicIndex * 300 + (subIndex % 3) * 120,
@@ -74,11 +74,11 @@ export default function Dashboard({ sessionName, structure }: DashboardProps) {
 
     // Add connection edges
     structure.connections.forEach((conn, index) => {
-      if (conn.fromTopic !== undefined && conn.toTopic !== undefined) {
+      if (conn.source !== undefined && conn.target !== undefined) {
         edges.push({
           id: `conn-${index}`,
-          source: `topic-${conn.fromTopic}`,
-          target: `topic-${conn.toTopic}`,
+          source: `topic-${conn.source}`,
+          target: `topic-${conn.target}`,
           type: 'connection'
         });
       }
