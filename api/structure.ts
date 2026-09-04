@@ -83,19 +83,34 @@ async function callGemini(
 }
 
 function parseJsonSafe(text: string): any {
+  console.log('Raw AI response:', text.slice(0, 500), '...')
+
   // Try raw parse first
   try {
     return JSON.parse(text)
-  } catch {
+  } catch (e) {
     // Fallback: strip markdown fences and any text outside the JSON block
     const cleaned = text
-      .replace(/^[\s\S]*?```(?:json)?\s*\n?/, '')   // remove everything before first ```json or ```
-      .replace(/\n?```[\s\S]*$/, '')                  // remove everything after closing ```
-      .replace(/^[^{]*/, '')                           // remove any leading non-JSON text
-      .replace(/[^}]*$/, '')                           // remove any trailing non-JSON text
+      .replace(/```(?:json)?\s*[\s\S]*?```/g, '') // remove markdown code blocks
+      .replace(/^[^{]*{\s*/g, '{') // remove anything before first {
+      .replace(/\s*}[^}]*$/g, '}') // remove anything after last }
       .trim()
+
+    console.log('Cleaned response:', cleaned.slice(0, 500))
+
     if (!cleaned) throw new Error('AI returned invalid JSON')
-    return JSON.parse(cleaned)
+
+    try {
+      return JSON.parse(cleaned)
+    } catch {
+      // Last resort: try to extract what looks like valid JSON
+      const match = cleaned.match(/\{[\s\S]*\}/)
+      if (match) {
+        console.log('Extracted JSON:', match[0].slice(0, 500))
+        return JSON.parse(match[0])
+      }
+      throw new Error('AI returned invalid JSON')
+    }
   }
 }
 
