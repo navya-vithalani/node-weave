@@ -260,7 +260,7 @@ export default function Uploader({ onContinue }: UploaderProps) {
                   <span className="uploader__guide-desc">No sources? Describe your topic and let an AI generate a structured markdown file.</span>
                   <button
                     className="uploader__copy-prompt"
-                    onClick={() => copyToClipboard('// TODO: Add topic-only prompt here')}
+                    onClick={() => copyToClipboard('Write a comprehensive, textbook-depth explanation of [TOPIC], formatted in Markdown with clear headings (#, ##) for each major section and subsection. Cover: core definitions and terminology, the underlying mechanisms or reasoning behind how it works, how the major sub-ideas connect to and build on each other, common points of confusion or misconceptions, and at least one worked example or concrete illustration for each major concept. Write in continuous prose under each heading, not just bullet points, organized in a logical teaching order from fundamentals to more advanced ideas. Aim for depth over brevity — assume the reader wants to genuinely understand this topic deeply, not skim a summary. Do not include a conclusion or meta-commentary about the response itself — just the structured content.')}
                   >
                     Copy prompt for AI ▸
                   </button>

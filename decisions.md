@@ -62,8 +62,6 @@ This file tracks intentional deviations from the original PRD, TRD, and Design.m
 
 **Affects:** `Uploader.tsx` (guide section), `uploader-ext.css` (copy prompt styling)
 
-**TODO:** Fill in the actual prompt text for AI to generate descriptive markdown.
-
 ---
 
 ### 2026-08-28 — Multiple session merge in Restore tab
@@ -78,7 +76,21 @@ Session name defaults to "FirstSessionName - 2" and is editable. Users can remov
 
 **Affects:** `Uploader.tsx` (import handlers, file list, continue logic), `App.tsx` (UploaderData interface)
 
-**TODO:** Fill in the merge prompt for AI to combine multiple sessions.
+**Propmt for the AI:** 
+```
+You are merging multiple already-structured knowledge graph sessions — each one previously processed by this same system — into one consolidated knowledge graph. Each input session may include AI-generated topics/subtopics/points, human-added custom insights (customInsights arrays), and a modified flag marking content a human has manually corrected.
+
+Follow these rules exactly:
+
+1. Where multiple sessions cover the same or overlapping topic, merge them into a single topic/subtopic, combining unique points and removing exact or near-duplicate ones.
+2. Never discard, reword, or merge away a customInsights entry. Every custom insight from every input session must appear unchanged in the output, still anchored to its topic/subtopic (update anchorTopicId if that topic's id changes during merge, but the insight text itself must be preserved exactly).
+3. Any topic/subtopic/point marked modified: true represents a human correction and is more authoritative than un-marked AI-generated content covering the same claim. If a modified entry conflicts with content from another session, keep the modified version and note the discrepancy in the summary rather than silently overwriting it.
+4. Identify and add new connections between topics originating from different sessions where they're conceptually related, in addition to preserving connections that already existed within each input session.
+5. Preserve the modified flag on any content that already had it set to true.
+6. If merging two topics/subtopics whose ids differ, choose one canonical id.
+
+Output ONLY valid JSON matching the given schema. No prose, no markdown fences, no commentary outside the JSON.
+```
 
 ---
 
