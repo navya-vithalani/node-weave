@@ -1,0 +1,103 @@
+/* Loading Screen - Terminal-style progress display */
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 60px);
+  padding: 2rem;
+}
+
+.loading__card {
+  max-width: 600px;
+  width: 100%;
+}
+
+.loading__header {
+  margin-bottom: 2rem;
+}
+
+.loading__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  color: var(--text-primary);
+}
+
+.loading__subtitle {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.loading__session-name {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.loading__terminal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+}
+
+.loading__terminal-content {
+  width: 100%;
+}
+
+.loading__status-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.loading__cursor {
+  color: var(--accent);
+  animation: blink 1s step-end infinite;
+}
+
+.loading__status-text {
+  color: var(--text-primary);
+}
+
+.loading__dots {
+  color: var(--text-secondary);
+  min-width: 1.5em;
+  text-align: left;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.loading__progress {
+  margin-bottom: 1rem;
+}
+
+.loading__progress-bar {
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.loading__progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.5s ease;
+}
+
+.loading__hint {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  margin: 0;
+}

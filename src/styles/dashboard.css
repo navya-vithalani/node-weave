@@ -1,0 +1,116 @@
+/* Dashboard - Basic view for Step 6 */
+
+.dashboard {
+  min-height: calc(100vh - 60px);
+  padding: 1.5rem 2rem;
+}
+
+.dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dashboard__header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dashboard__title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.dashboard__date {
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.dashboard__header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dashboard__stats {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.dashboard__stat {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.dashboard__stat-value {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.dashboard__content {
+  flex: 1;
+}
+
+.dashboard__json-viewer {
+  height: calc(100vh - 220px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard__json-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.75rem;
+}
+
+.dashboard__json-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  color: var(--text-secondary);
+}
+
+.dashboard__json-content {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.dashboard__placeholder {
+  height: calc(100vh - 220px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.dashboard__placeholder-content {
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.dashboard__placeholder-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}

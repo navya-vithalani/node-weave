@@ -210,6 +210,44 @@ position:relative;
 
 }
 
+.app__error{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:16px 24px;
+  margin:24px 32px;
+  background:rgba(255,123,114,.08);
+  border:1px solid rgba(255,123,114,.25);
+  border-radius:8px;
+}
+
+.app__error-icon{
+  color:var(--danger);
+  font-size:1.2rem;
+}
+
+.app__error-text{
+  flex:1;
+  color:var(--danger);
+  font-size:.95rem;
+}
+
+.app__error-retry{
+  padding:8px 16px;
+  background:rgba(255,123,114,.15);
+  border:1px solid rgba(255,123,114,.3);
+  color:var(--danger);
+  border-radius:6px;
+  font-family:var(--font-body);
+  font-size:.9rem;
+  cursor:pointer;
+  transition:all .2s;
+}
+
+.app__error-retry:hover{
+  background:rgba(255,123,114,.25);
+}
+
 /* ===========================================================
 NAVBAR
 ===========================================================*/
@@ -1002,4 +1040,171 @@ font-family:var(--font-mono);
 
 .uploader__btn:hover .uploader__btn-arrow{
 transform:translateX(6px);
+}
+
+/* ---------- tabs ---------- */
+
+.uploader__tabs{
+display:flex;
+gap:4px;
+background:var(--bg-elev);
+padding:4px;
+border-radius:8px;
+}
+
+.uploader__tab{
+flex:1;
+padding:10px 16px;
+border:none;
+background:transparent;
+color:var(--muted);
+font-family:var(--font-body);
+font-size:.9rem;
+cursor:pointer;
+transition:all .2s;
+border-radius:6px;
+}
+
+.uploader__tab:hover{
+color:var(--text);
+}
+
+.uploader__tab--active{
+background:var(--panel);
+color:var(--text);
+box-shadow:0 2px 8px rgba(0,0,0,.2);
+}
+
+/* ---------- file list ---------- */
+
+.uploader__file-list{
+display:flex;
+flex-direction:column;
+gap:8px;
+margin-top:16px;
+}
+
+.uploader__file-item{
+display:flex;
+align-items:center;
+gap:10px;
+padding:10px 12px;
+background:var(--bg-elev);
+border:1px solid var(--border);
+border-radius:6px;
+font-size:.9rem;
+}
+
+.uploader__file-icon{
+font-size:1rem;
+}
+
+.uploader__file-name{
+flex:1;
+color:var(--text);
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+
+.uploader__file-size{
+color:var(--muted);
+font-size:.8rem;
+font-family:var(--font-mono);
+}
+
+.uploader__file-remove{
+width:24px;
+height:24px;
+display:flex;
+align-items:center;
+justify-content:center;
+border:none;
+background:transparent;
+color:var(--muted);
+cursor:pointer;
+border-radius:4px;
+transition:all .2s;
+font-size:1.1rem;
+}
+
+.uploader__file-remove:hover{
+background:rgba(255,123,114,.15);
+color:var(--danger);
+}
+
+/* ---------- upload errors ---------- */
+
+.uploader__upload-errors{
+background:rgba(255,123,114,.08);
+border:1px solid rgba(255,123,114,.25);
+border-radius:8px;
+padding:12px 16px;
+margin-top:16px;
+}
+
+.uploader__upload-errors-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:8px;
+}
+
+.uploader__upload-errors-title{
+color:var(--danger);
+font-size:.85rem;
+font-weight:600;
+}
+
+.uploader__upload-errors-dismiss{
+width:20px;
+height:20px;
+display:flex;
+align-items:center;
+justify-content:center;
+border:none;
+background:transparent;
+color:var(--danger);
+cursor:pointer;
+font-size:1rem;
+}
+
+.uploader__upload-errors-list{
+list-style:none;
+display:flex;
+flex-direction:column;
+gap:4px;
+}
+
+.uploader__upload-error-item{
+font-size:.8rem;
+color:var(--muted);
+}
+
+/* ---------- validation error ---------- */
+
+.uploader__error{
+color:var(--danger);
+font-size:.9rem;
+padding:12px 16px;
+background:rgba(255,123,114,.08);
+border:1px solid rgba(255,123,114,.25);
+border-radius:6px;
+margin-top:16px;
+}
+
+/* ---------- imported badge ---------- */
+
+.uploader__imported-badge{
+padding:2px 8px;
+border-radius:4px;
+font-size:.7rem;
+font-family:var(--font-mono);
+text-transform:uppercase;
+letter-spacing:.05em;
+}
+
+.uploader__imported-badge--original{
+background:rgba(116,211,255,.15);
+color:var(--cyan);
 }
