@@ -5,3 +5,4 @@ dist/
 .env.local
 test-output.json
 .claude
+.vercel

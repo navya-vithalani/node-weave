@@ -58,12 +58,27 @@ function App() {
       body: JSON.stringify({ documents }),
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || 'Structure request failed');
+    // Handle non-JSON responses (like 504 timeouts or 500 errors)
+    const text = await response.text();
+    let errData;
+    try {
+      errData = JSON.parse(text);
+    } catch {
+      // Response is not JSON - show the raw error
+      throw new Error(text || `Server error: ${response.status}`);
     }
 
-    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(errData?.error || `Structure request failed: ${response.status}`);
+    }
+
+    let result: OriginalStructure;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      throw new Error('Invalid JSON response from server');
+    }
+
     result.sessionName = sessionName;
     return result;
   };
@@ -93,12 +108,26 @@ function App() {
       }),
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.error || 'Merge request failed');
+    // Handle non-JSON responses (like 504 timeouts or 500 errors)
+    const text = await response.text();
+    let errData;
+    try {
+      errData = JSON.parse(text);
+    } catch {
+      throw new Error(text || `Server error: ${response.status}`);
     }
 
-    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(errData?.error || `Merge request failed: ${response.status}`);
+    }
+
+    let result: OriginalStructure;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      throw new Error('Invalid JSON response from server');
+    }
+
     result.sessionName = sessionName;
     return result;
   };
