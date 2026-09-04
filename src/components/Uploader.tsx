@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import type { OriginalStructure } from '../types/schema';
 import '../styles/uploader-ext.css';
+import { extractTextFromPDF } from '../lib/pdf';
 
 interface UploadedFile {
   id: string;
@@ -57,6 +58,8 @@ export default function Uploader({ onContinue }: UploaderProps) {
       let content: string | undefined;
       if (ext === 'txt' || ext === 'md') {
         content = await file.text();
+      } else if (ext === 'pdf') {
+        content = await extractTextFromPDF(file);
       }
 
       newFiles.push({
