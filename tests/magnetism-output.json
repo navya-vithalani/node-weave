@@ -1,0 +1,372 @@
+{
+  "sessionName": "pdf try",
+  "createdAt": "2026-09-04T11:45:57.239Z",
+  "topics": [
+    {
+      "id": "topic-1",
+      "name": "Fundamentals of Magnetic Fields and Lorentz Force",
+      "summary": "This topic covers the historical discovery of electromagnetism by Oersted and the unification of electric and magnetic phenomena. It introduces the concept of the magnetic field B as a vector field obeying superposition. It also details the Lorentz force on moving charges and current-carrying conductors, highlighting the perpendicular nature of magnetic forces.",
+      "subtopics": [
+        {
+          "id": "subtopic-1-1",
+          "name": "Oersted's Discovery & Concept of Magnetic Field",
+          "summary": "Hans Christian Oersted discovered in 1820 that electric currents produce magnetic fields, providing the first empirical link between electricity and magnetism.",
+          "points": [
+            "Electric current in a straight wire deflects a magnetic compass needle tangentially to concentric circular field lines.",
+            "Reversing current direction reverses needle deflection; increasing current or proximity increases deflection.",
+            "Moving charges or electric currents act as sources of a vector magnetic field B(r).",
+            "Magnetic fields obey the principle of superposition, where total B is the vector sum of individual source fields.",
+            "Electromagnetism was unified by James Clerk Maxwell in 1864, leading to the discovery of light as electromagnetic waves."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-1-2",
+          "name": "Lorentz Force on a Moving Charge",
+          "summary": "The Lorentz force describes the total force exerted on a charge moving through combined electric and magnetic fields.",
+          "points": [
+            "Lorentz force equation: F = q[E + (v × B)] = F_electric + F_magnetic.",
+            "Magnetic force F_mag = q(v × B) depends on charge q, velocity v, and magnetic field B.",
+            "Magnetic force is zero when particle velocity is zero or when v is parallel/antiparallel to B.",
+            "Direction of magnetic force is perpendicular to both velocity v and field B, determined by the right-hand screw rule.",
+            "Force on a negative charge is opposite in direction to that on a positive charge.",
+            "SI unit of B is Tesla (T), defined as 1 N·s/(C·m) or N/(A·m); non-SI unit is Gauss (1 G = 10^-4 T)."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-1-3",
+          "name": "Magnetic Force on Current-Carrying Conductors",
+          "summary": "Extends single-charge Lorentz force to macroscopic conductors carrying steady electric currents.",
+          "points": [
+            "Force on a straight rod of length l carrying current I in external B: F = I (l × B).",
+            "Derived from total microscopic magnetic force on mobile carriers: F = (n A l) q (v_d × B).",
+            "Vector length l has magnitude equal to rod length and points in the direction of steady current I.",
+            "For arbitrarily shaped wires, net force is found by integrating infinitesimal force elements: dF = I (dl × B)."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        }
+      ]
+    },
+    {
+      "id": "topic-2",
+      "name": "Motion of Charged Particles in Magnetic Fields",
+      "summary": "This topic analyzes the dynamics of charged particles moving through uniform magnetic fields. Because the magnetic force acts perpendicular to motion, it does zero work and acts as a centripetal force. The particle describes circular or helical trajectories depending on its initial velocity orientation relative to the magnetic field.",
+      "subtopics": [
+        {
+          "id": "subtopic-2-1",
+          "name": "Circular and Helical Motion Trajectories",
+          "summary": "Determines the geometry of particle trajectories in uniform magnetic fields based on initial velocity components.",
+          "points": [
+            "Magnetic force performs zero work (W = 0) because F is always perpendicular to velocity v, keeping speed and kinetic energy constant.",
+            "When velocity v is strictly perpendicular to B, the magnetic force provides centripetal force (q v B = m v^2 / r), resulting in a circular orbit of radius r = m v / (q B).",
+            "When velocity has a parallel component (v_||) to B, that component remains unaffected while the perpendicular component causes rotation, producing helical motion.",
+            "Pitch of helix p is the linear distance traversed along B in one rotation: p = v_|| * T = 2π m v_|| / (q B)."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-2-2",
+          "name": "Cyclotron Frequency and Energy Independence",
+          "summary": "Describes rotational frequency of charged particles in magnetic fields and its independence from speed and radius.",
+          "points": [
+            "Angular frequency ω = q B / m, and rotation frequency ν = q B / (2π m).",
+            "Period of revolution T = 2π / ω = 2π m / (q B).",
+            "Rotation frequency ν is independent of particle speed, kinetic energy, and orbit radius.",
+            "This property of velocity independence forms the fundamental operational principle of particle accelerators like the cyclotron."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        }
+      ]
+    },
+    {
+      "id": "topic-3",
+      "name": "Biot-Savart Law and Field Computation",
+      "summary": "This topic presents the fundamental differential law relating steady currents to magnetic fields. It details the vector formulation of Biot-Savart law, compares it with Coulomb's law, establishes the relationship between permeability and permittivity, and applies the law to compute fields along the axis of circular current loops.",
+      "subtopics": [
+        {
+          "id": "subtopic-3-1",
+          "name": "Statement and Properties of Biot-Savart Law",
+          "summary": "Defines the fundamental law for calculating magnetic field contribution dB from an infinitesimal current element I dl.",
+          "points": [
+            "Vector formulation: dB = (μ0 / 4π) * (I dl × r) / r^3; magnitude dB = (μ0 / 4π) * (I dl sin θ) / r^2.",
+            "Permeability of free space constant: μ0 = 4π × 10^-7 T·m/A.",
+            "Link between EM constants and speed of light c: c = 1 / √(μ0 ε0).",
+            "Similarities to Coulomb's law: both are inverse-square long-range fields obeying superposition.",
+            "Differences from Coulomb's law: magnetic field source is a vector (I dl), field direction is perpendicular to displacement vector r, and magnitude depends on angle θ."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-3-2",
+          "name": "Magnetic Field on Axis of Circular Current Loop",
+          "summary": "Calculates the magnetic field generated along the central axis of a circular current loop using Biot-Savart law.",
+          "points": [
+            "Axial field expression for loop of radius R at distance x: B = (μ0 I R^2) / [2(x^2 + R^2)^(3/2)] in the axial direction.",
+            "Perpendicular components of dB cancel out by symmetry; only axial components survive.",
+            "Field magnitude at the center of the circular loop (x = 0): B = μ0 I / (2 R).",
+            "For a coil with N tightly wound turns: B = μ0 N I / (2 R) at center.",
+            "Field line direction is given by the right-hand thumb rule (curled fingers along current, thumb along B)."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        }
+      ]
+    },
+    {
+      "id": "topic-4",
+      "name": "Ampere's Circuital Law and Applications",
+      "summary": "This topic introduces Ampere's circuital law as an alternative, highly symmetric integral method for computing magnetic fields due to steady currents. It covers applications including straight cylindrical conductors, thick current-carrying wires, and long solenoids.",
+      "subtopics": [
+        {
+          "id": "subtopic-4-1",
+          "name": "Ampere's Circuital Law Formulation",
+          "summary": "Presents the integral law relating line integral of B around a closed loop to enclosed current.",
+          "points": [
+            "Ampere's law statement: ∮ B · dl = μ0 I_enclosed over a closed boundary loop C.",
+            "Simplified Amperian loop form: B L = μ0 I_e when B is tangential and constant along loop length L.",
+            "Holds strictly for time-independent steady electric currents.",
+            "Serves as the magnetic analogue to Gauss's law in electrostatics."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-4-2",
+          "name": "Field of Straight Conductors and Cylindrical Wires",
+          "summary": "Applies Ampere's law to determine field distributions inside and outside straight conducting wires.",
+          "points": [
+            "Field outside a long straight wire at radius r: B = μ0 I / (2π r), demonstrating cylindrical symmetry.",
+            "Inside a uniform wire of radius a (r < a): enclosed current I_e = I (r^2 / a^2), yielding B = (μ0 I / 2π a^2) r (i.e., B ∝ r).",
+            "Field lines form concentric circles around the conductor."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-4-3",
+          "name": "Magnetic Field of a Long Solenoid",
+          "summary": "Analyzes magnetic field geometry and calculates uniform axial field inside a long helical solenoid.",
+          "points": [
+            "Long solenoid defined where length is much greater than radius (l >> R).",
+            "Exterior magnetic field approaches zero and is assumed negligible (B_out ≈ 0).",
+            "Interior magnetic field is uniform, strong, and parallel to axis.",
+            "Using rectangular Amperian loop, interior field magnitude is B = μ0 n I, where n is turns per unit length."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        }
+      ]
+    },
+    {
+      "id": "topic-5",
+      "name": "Force Between Parallel Currents and Unit Definition",
+      "summary": "This topic examines the mutual magnetic interaction forces exerted between parallel current-carrying conductors. It demonstrates consistency with Newton's third law and establishes the international standard SI definition of the Ampere and Coulomb.",
+      "subtopics": [
+        {
+          "id": "subtopic-5-1",
+          "name": "Force Between Parallel Current-Carrying Conductors",
+          "summary": "Derives the mutual magnetic force per unit length between two parallel straight currents.",
+          "points": [
+            "Field of conductor 'a' at conductor 'b' distance d away: B_a = μ0 I_a / (2π d).",
+            "Force on length L of conductor 'b': F_ba = I_b L B_a = (μ0 I_a I_b L) / (2π d).",
+            "Equal and opposite reaction forces: F_ba = -F_ab, consistent with Newton's third law for steady currents.",
+            "Parallel currents flowing in the same direction attract each other; antiparallel currents repel each other (opposite behavior to electrostatic charges)."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-5-2",
+          "name": "Definition of Ampere and Coulomb",
+          "summary": "Explains how parallel magnetic force provides the formal theoretical definition of SI units of current and charge.",
+          "points": [
+            "The Ampere (A) is the steady current which, maintained in two infinitely long parallel conductors 1 meter apart in vacuum, produces force equal to 2 × 10^-7 N/m.",
+            "Definition adopted in 1946; measured practically using current balances.",
+            "Coulomb (C) is defined via Ampere as charge transported by 1 A current in 1 second (1 C = 1 A·s)."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        }
+      ]
+    },
+    {
+      "id": "topic-6",
+      "name": "Torque on Current Loops and Magnetic Dipoles",
+      "summary": "This topic explores forces and torques acting on planar current loops in uniform magnetic fields. It defines the magnetic dipole moment, demonstrates equivalence between circular current loops and magnetic dipoles, and notes the absence of observed magnetic monopoles.",
+      "subtopics": [
+        {
+          "id": "subtopic-6-1",
+          "name": "Torque on a Current Loop in Uniform Field",
+          "summary": "Derives net torque experienced by planar current-carrying loops in uniform magnetic fields.",
+          "points": [
+            "Net force on any closed planar loop in a uniform magnetic field is zero (F_net = 0).",
+            "Forces on opposite arms create a couple resulting in net torque τ = I A B sin θ, where θ is angle between normal to coil plane and B.",
+            "Vector torque formula: τ = m × B, where magnetic moment m = N I A.",
+            "Stable equilibrium occurs when m is parallel to B (θ = 0); unstable equilibrium occurs when m is antiparallel to B (θ = 180°)."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-6-2",
+          "name": "Magnetic Dipole Moment and Dipole Equivalence",
+          "summary": "Establishes equivalence between circular current loops and electric dipoles at large axial distances.",
+          "points": [
+            "Magnetic dipole moment defined as m = I A (or N I A for N turns), with units A·m^2 or J/T.",
+            "For axial distance x >> R, magnetic field of circular loop reduces to B ≈ (μ0 / 4π) (2 m / x^3).",
+            "Formulation matches electric dipole field equation under substitutions ε0 → 1/μ0, p_e → m, E → B.",
+            "Planar current loops act as elementary magnetic dipoles; magnetic monopoles have not been observed in nature."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        }
+      ]
+    },
+    {
+      "id": "topic-7",
+      "name": "Moving Coil Galvanometer and Instrument Conversion",
+      "summary": "This topic explains the structure, mathematical operation, and applications of the moving coil galvanometer (MCG). It details how restoring spring torque balances magnetic torque and shows how to convert MCGs into ammeters or voltmeters using external resistors.",
+      "subtopics": [
+        {
+          "id": "subtopic-7-1",
+          "name": "Operation of Moving Coil Galvanometer",
+          "summary": "Details construction and torque-balance mechanism of MCG for measuring tiny electric currents.",
+          "points": [
+            "Consists of a coil suspended in a radial magnetic field provided by shaped poles and a soft iron core.",
+            "Radial field ensures magnetic torque magnitude is maximized (sin θ = 1): τ_mag = N I A B.",
+            "Spring counter-torque k φ balances magnetic torque in equilibrium: k φ = N I A B, giving deflection φ = (N A B / k) I.",
+            "Torsional constant k represents restoring torque per unit twist of the spring."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-7-2",
+          "name": "Sensitivity and Conversion to Ammeter/Voltmeter",
+          "summary": "Explains current and voltage sensitivity definitions and conversion formulas for measuring circuit parameters.",
+          "points": [
+            "Current sensitivity: φ / I = N A B / k (deflection per unit current).",
+            "Voltage sensitivity: φ / V = N A B / (k R) (deflection per unit voltage). Doubling N doubles current sensitivity but leaves voltage sensitivity unchanged if resistance R also doubles.",
+            "Conversion to Ammeter: parallel low resistance shunt r_s attached to MCG, resulting in small combined resistance.",
+            "Conversion to Voltmeter: high resistance R connected in series with MCG to minimize circuit loading."
+          ],
+          "sourceRefs": [
+            "6cf86c5e-cc90-4aa5-9b9c-ea417478174c"
+          ],
+          "discrepancy": null
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-1",
+      "source": "subtopic-1-2",
+      "target": "subtopic-2-1",
+      "link": "Lorentz magnetic force q(v × B) acts perpendicular to velocity, providing centripetal force for circular/helical particle orbits."
+    },
+    {
+      "id": "conn-2",
+      "source": "subtopic-2-1",
+      "target": "subtopic-2-2",
+      "link": "Equating magnetic centripetal force to m v^2 / r yields the velocity-independent cyclotron frequency."
+    },
+    {
+      "id": "conn-3",
+      "source": "subtopic-3-1",
+      "target": "subtopic-3-2",
+      "link": "Integrating Biot-Savart differential element dB over loop geometry yields magnetic field along circular loop axis."
+    },
+    {
+      "id": "conn-4",
+      "source": "subtopic-3-1",
+      "target": "subtopic-4-1",
+      "link": "Biot-Savart law and Ampere's circuital law are alternative mathematical formulations expressing magnetic fields of steady currents."
+    },
+    {
+      "id": "conn-5",
+      "source": "subtopic-4-1",
+      "target": "subtopic-4-2",
+      "link": "Ampere's circuital law utilizes cylindrical symmetry to calculate B inside and outside long straight wires."
+    },
+    {
+      "id": "conn-6",
+      "source": "subtopic-4-1",
+      "target": "subtopic-4-3",
+      "link": "Ampere's law applied around a rectangular loop evaluates interior uniform magnetic field B = μ0 n I of a long solenoid."
+    },
+    {
+      "id": "conn-7",
+      "source": "subtopic-1-3",
+      "target": "subtopic-5-1",
+      "link": "Magnetic force formula F = I (l × B) combined with field of long wire yields mutual force between parallel current conductors."
+    },
+    {
+      "id": "conn-8",
+      "source": "subtopic-5-1",
+      "target": "subtopic-5-2",
+      "link": "Calculated parallel conductor force per unit length serves as the basis for defining the SI Ampere."
+    },
+    {
+      "id": "conn-9",
+      "source": "subtopic-1-3",
+      "target": "subtopic-6-1",
+      "link": "Summing forces F = I (l × B) on individual sides of a rectangular coil produces net rotational torque τ = m × B."
+    },
+    {
+      "id": "conn-10",
+      "source": "subtopic-3-2",
+      "target": "subtopic-6-2",
+      "link": "Axial circular loop field at large distances x >> R matches mathematical expression of magnetic dipole field."
+    },
+    {
+      "id": "conn-11",
+      "source": "subtopic-6-1",
+      "target": "subtopic-7-1",
+      "link": "Deflection torque τ = N I A B on current loop in radial field forms operational basis of moving coil galvanometer."
+    },
+    {
+      "id": "conn-12",
+      "source": "subtopic-7-1",
+      "target": "subtopic-7-2",
+      "link": "Galvanometer equilibrium equation φ = (N A B / k) I dictates current sensitivity and conversion parameters for ammeters/voltmeters."
+    }
+  ]
+}

@@ -308,4 +308,18 @@
 	color:var(--danger);
 }
 
+/* ---------- test button (dev only) ---------- */
+
+.uploader__btn--test{
+	background:rgba(var(--accent-r), var(--accent-g), var(--accent-b),.08);
+	border:1px dashed rgba(var(--accent-r), var(--accent-g), var(--accent-b),.3);
+	color:var(--muted);
+	font-size:.8rem;
+}
+
+.uploader__btn--test:hover{
+	border-style:solid;
+	color:var(--accent);
+}
+
 /* ========== old import styles (removed - using tabbed layout) ========== */

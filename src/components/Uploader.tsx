@@ -16,6 +16,7 @@ interface UploaderProps {
     sessionName: string;
     files: UploadedFile[];
     importedSessions: OriginalStructure[];
+    isTest?: boolean;
   }) => void;
 }
 
@@ -458,6 +459,25 @@ export default function Uploader({ onContinue }: UploaderProps) {
           >
             Start Mapping
             <span className="uploader__btn-arrow">→</span>
+          </button>
+          <button
+            className="uploader__btn uploader__btn--test"
+            onClick={() => {
+              onContinue({
+                sessionName: sessionName || 'Test Session',
+                files: files.length > 0 ? files : [{
+                  id: 'test-file',
+                  name: 'test-document.txt',
+                  type: 'txt',
+                  size: 1024,
+                  content: 'Test content for loading screen demonstration.'
+                }],
+                importedSessions: [],
+                isTest: true
+              });
+            }}
+          >
+            Test Loading Screen (35s)
           </button>
         </div>
       </div>

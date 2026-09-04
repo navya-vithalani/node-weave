@@ -1,0 +1,269 @@
+{
+  "sessionName": "magnetism goated",
+  "createdAt": "2026-09-04T12:25:57.196Z",
+  "topics": [
+    {
+      "id": "topic-1",
+      "name": "Fundamentals of Magnetism and Charged Particle Motion",
+      "summary": "This topic establishes the foundational concepts of magnetism, including magnetic fields, vector fields, and magnetic dipoles. It examines how moving electric charges and intrinsic quantum spin give rise to magnetic phenomena. Furthermore, it details the Lorentz force and the trajectories of charged particles moving through uniform magnetic fields.",
+      "subtopics": [
+        {
+          "id": "subtopic-1-1",
+          "name": "Definitions, Field Representation, and Gauss's Law for Magnetism",
+          "summary": "Covers core definitions such as magnetic flux density (B), magnetic field intensity (H), magnetic flux (Φ), permeability (μ), and Gauss's law for magnetism.",
+          "points": [
+            "Magnetic field B is a vector field representing the force experienced by moving charges or magnetic dipoles at any point in space.",
+            "Magnetic flux Φ measures the total magnetic field passing through a surface; Gauss's law for magnetism states that net flux through any closed surface is zero because magnetic monopoles do not exist.",
+            "Field lines form continuous closed loops, exiting north poles and entering south poles externally, and continuing from south to north internally.",
+            "Distinguishes B (magnetic flux density, total field in Tesla) from H (auxiliary field set by free currents in A/m), related by B = μ₀(H + M)."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885",
+            "aa301d86-7eff-4f62-9e7f-874313151701"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-1-2",
+          "name": "Quantum and Charge Origins of Magnetism",
+          "summary": "Explores the dual origins of magnetism: macroscopic electric currents (discovered by Ørsted) and intrinsic quantum electron spin and orbital angular momentum.",
+          "points": [
+            "Ørsted (1820) discovered that moving electric charges generate magnetic fields wrapping around conductors according to the right-hand rule.",
+            "Microscopic magnetism arises primarily from intrinsic electron spin and atomic electron orbital motion.",
+            "Electron spin is an intrinsic quantum mechanical property, not literal mechanical rotation, which yields a quantized magnetic moment.",
+            "In many atoms, the Pauli exclusion principle forces electron spins to pair up and cancel, leaving only specific elements with net magnetic moments."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885",
+            "aa301d86-7eff-4f62-9e7f-874313151701"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-1-3",
+          "name": "Lorentz Force and Charged Particle Dynamics",
+          "summary": "Analyzes the mathematical formulations governing the force on charges moving in electric and magnetic fields, including circular and helical trajectories.",
+          "points": [
+            "The Lorentz force law is given by F = q(E + v × B); static charges feel no magnetic force.",
+            "Because the magnetic force F_mag = q(v × B) is strictly perpendicular to velocity, it performs zero work and changes only the direction of motion, not kinetic energy.",
+            "When velocity is perpendicular to B, the magnetic force acts as a centripetal force, driving the charge in a circle of radius r = mv / (qB).",
+            "The cyclotron frequency ω = qB / m is independent of velocity and radius.",
+            "If velocity has a component parallel to B, the charge traces a helical path with pitch p = v_parallel * (2πm / qB)."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885",
+            "aa301d86-7eff-4f62-9e7f-874313151701"
+          ],
+          "discrepancy": null
+        }
+      ]
+    },
+    {
+      "id": "topic-2",
+      "name": "Quantitative Laws and Field Sources",
+      "summary": "Focuses on mathematical principles used to calculate magnetic field distributions created by moving charges and steady electric currents. It highlights the Biot-Savart Law and Ampère's Circuital Law, applying them to circular loops, straight conductors, and solenoids.",
+      "subtopics": [
+        {
+          "id": "subtopic-2-1",
+          "name": "Biot-Savart Law and Current Loops",
+          "summary": "Details the Biot-Savart law for infinitesimal current elements and calculates axial and central fields of circular current loops.",
+          "points": [
+            "Biot-Savart law calculates magnetic field dB = (μ₀ / 4π) * (I dl × r) / r³, showing field magnitude is inversely proportional to distance squared and perpendicular to dl and r.",
+            "Relates vacuum permeability μ₀ and permittivity ε₀ to light speed c via c = 1 / √(μ₀ ε₀).",
+            "For a circular current loop of radius R, the field along its axis at distance x is B = μ₀ I R² / [2(x² + R²)^(3/2)].",
+            "At the center of a circular loop (x = 0), the magnetic field simplifies to B = μ₀ I / (2R)."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885",
+            "aa301d86-7eff-4f62-9e7f-874313151701"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-2-2",
+          "name": "Ampère's Circuital Law and Straight Conductors",
+          "summary": "Presents Ampère's Circuital Law and its application to highly symmetric configurations such as infinite long straight wires.",
+          "points": [
+            "Ampère's Circuital Law states line integral ∮ B · dl = μ₀ I_enclosed along a closed Amperian loop.",
+            "For an infinitely long straight wire carrying current I, the magnetic field outside at distance r is B = μ₀ I / (2π r).",
+            "Inside a solid cylindrical conductor of radius a, field increases linearly with distance r (B ∝ r), while outside it decreases inversely (B ∝ 1/r).",
+            "Ampère's law applies to steady currents and serves as the magnetic analog to Gauss's law in electrostatics."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885",
+            "aa301d86-7eff-4f62-9e7f-874313151701"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-2-3",
+          "name": "Solenoid Configuration and Uniform Fields",
+          "summary": "Examines the magnetic field characteristics inside long tightly wound helical coils.",
+          "points": [
+            "A long solenoid consists of closely wound insulated wire forming a helix.",
+            "Inside an ideal long solenoid, the magnetic field is uniform and parallel to the axis, with magnitude B = μ₀ n I, where n is turns per unit length.",
+            "The external magnetic field near the center of a long solenoid approaches zero.",
+            "Inserting a high-permeability ferromagnet (like soft iron) into a solenoid dramatically amplifies B by adding material magnetization."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885",
+            "aa301d86-7eff-4f62-9e7f-874313151701"
+          ],
+          "discrepancy": null
+        }
+      ]
+    },
+    {
+      "id": "topic-3",
+      "name": "Magnetic Forces, Dipoles, and Measurement Instruments",
+      "summary": "Examines forces acting on current-carrying conductors, interactions between parallel wires, torque on magnetic dipoles, and the operational mechanics of moving coil galvanometers and converted meters.",
+      "subtopics": [
+        {
+          "id": "subtopic-3-1",
+          "name": "Forces on Conductors and Parallel Wire Interactions",
+          "summary": "Covers macroscopic forces on current wires (F = I L × B) and the mutual attractive/repulsive forces between parallel current carriers.",
+          "points": [
+            "A straight wire carrying current in an external field experiences force F = I L × B.",
+            "Parallel currents flowing in the same direction attract each other; antiparallel currents repel each other.",
+            "The force per unit length between two long parallel conductors separated by distance d is f = μ₀ I_a I_b / (2π d).",
+            "This interaction historically defined the standard SI unit Ampere."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885",
+            "aa301d86-7eff-4f62-9e7f-874313151701"
+          ],
+          "discrepancy": "Doc 2 states the traditional 1946 definition of the Ampere based on mechanical force per unit length (2 × 10⁻⁷ N/m between conductors 1m apart). Doc 1 notes that in 2019 the Ampere was redefined based on fixed fundamental constants rather than the 1946 mechanical force setup."
+        },
+        {
+          "id": "subtopic-3-2",
+          "name": "Current Loops as Magnetic Dipoles and Torque",
+          "summary": "Describes current loops as magnetic dipoles, calculating magnetic moment m = N I A and torque τ = m × B.",
+          "points": [
+            "A planar current loop acts as a magnetic dipole with magnetic dipole moment m = N I A.",
+            "In a uniform magnetic field, a current loop experiences zero net translational force but a torque τ = m × B = N I A B sin θ.",
+            "Stable equilibrium occurs when magnetic moment m is aligned parallel with B (θ = 0); antiparallel alignment (θ = π) represents unstable equilibrium.",
+            "At large distances, axial field of a circular loop B = (μ₀ / 4π) * (2m / x³) matches the mathematical form of an electric dipole field."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885",
+            "aa301d86-7eff-4f62-9e7f-874313151701"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-3-3",
+          "name": "Moving Coil Galvanometer, Ammeters, and Voltmeters",
+          "summary": "Explains the construction, operation, sensitivity, and circuit conversion of moving coil galvanometers.",
+          "points": [
+            "A Moving Coil Galvanometer (MCG) utilizes a coil suspended in a uniform radial magnetic field created by curved pole pieces and a soft iron core.",
+            "Deflection φ is directly proportional to current: k φ = N I A B, where k is the spring's torsional restoration constant.",
+            "Current sensitivity is defined as φ / I = N A B / k.",
+            "An MCG is converted into an Ammeter by connecting a small shunt resistance r_s in parallel.",
+            "An MCG is converted into a Voltmeter by connecting a large resistance R in series."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885",
+            "aa301d86-7eff-4f62-9e7f-874313151701"
+          ],
+          "discrepancy": null
+        }
+      ]
+    },
+    {
+      "id": "topic-4",
+      "name": "Material Magnetism, Hysteresis, and Electromagnetic Induction",
+      "summary": "Categorizes the response of materials to magnetic fields (diamagnetism, paramagnetism, ferromagnetism, ferrimagnetism), outlines domain dynamics and hysteresis loops, and discusses Faraday's Law, Lenz's Law, and Maxwell's synthesis.",
+      "subtopics": [
+        {
+          "id": "subtopic-4-1",
+          "name": "Classification of Magnetic Materials",
+          "summary": "Details the microscopic alignment behaviors and magnetic responses of diamagnetic, paramagnetic, ferromagnetic, antiferromagnetic, and ferrimagnetic substances.",
+          "points": [
+            "Diamagnetism is a universal orbital quantum induction effect where materials are weakly repelled by magnetic fields.",
+            "Paramagnetism occurs in materials with permanent atomic moments; alignment is induced by external fields and opposed by thermal agitation (Curie's Law).",
+            "Ferromagnetism involves strong spontaneous alignment of atomic spins into domains via the quantum exchange interaction.",
+            "Antiferromagnetism features equal anti-aligned moments yielding zero net magnetization; Ferrimagnetism features unequal anti-aligned moments yielding net magnetization."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-4-2",
+          "name": "Domains, Magnetic Hysteresis, and Core Selection",
+          "summary": "Examines domain wall displacement, remanence, coercivity, and the application of hysteresis curves in engineering permanent magnets vs. transformer cores.",
+          "points": [
+            "Unmagnetized ferromagnets contain multiple randomly oriented magnetic domains; external fields cause aligned domains to grow via domain wall motion.",
+            "Hysteresis loops plot magnetization M versus field H; remanence is residual magnetization when H=0, and coercivity is reverse field needed to demagnetize.",
+            "Hard magnetic materials have broad hysteresis loops (high coercivity/remanence), making them optimal for permanent magnets.",
+            "Soft magnetic materials (e.g., silicon steel) have narrow hysteresis loops (low coercivity), minimizing energy dissipation per AC cycle in transformer cores."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885"
+          ],
+          "discrepancy": null
+        },
+        {
+          "id": "subtopic-4-3",
+          "name": "Electromagnetic Induction and Maxwell's Equations",
+          "summary": "Explains Faraday's law of induction, Lenz's law, motor/generator duality, and Maxwell's unification of electromagnetism and light.",
+          "points": [
+            "Faraday's Law states induced EMF equals the negative rate of change of magnetic flux: EMF = -dΦ/dt.",
+            "Lenz's Law enforces conservation of energy, stipulating induced currents flow to oppose the flux change that generated them.",
+            "Electric motors (current produces torque) and generators (mechanical rotation induces current) are exact operational mirror images.",
+            "Maxwell added the displacement current term (changing electric field creates magnetic field), unifying electricity, magnetism, and optics into light waves."
+          ],
+          "sourceRefs": [
+            "74973398-2cc9-4fbb-b809-710ab317f885"
+          ],
+          "discrepancy": null
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "conn-1",
+      "source": "subtopic-1-2",
+      "target": "subtopic-2-1",
+      "link": "Moving charge and current concepts discovered by Ørsted lead directly to quantitative mathematical modeling via Biot-Savart Law."
+    },
+    {
+      "id": "conn-2",
+      "source": "subtopic-1-3",
+      "target": "subtopic-3-1",
+      "link": "Lorentz force on single moving charge integrates across drift velocity of charge carriers inside wires to yield force on current-carrying conductors."
+    },
+    {
+      "id": "conn-3",
+      "source": "subtopic-2-1",
+      "target": "subtopic-3-2",
+      "link": "Biot-Savart evaluation of axial magnetic field for circular current loops demonstrates equivalence to magnetic dipoles at large distances."
+    },
+    {
+      "id": "conn-4",
+      "source": "subtopic-3-2",
+      "target": "subtopic-3-3",
+      "link": "Torque formula τ = m × B acting on a current loop in a radial field serves as the core physical operating principle of the Moving Coil Galvanometer."
+    },
+    {
+      "id": "conn-5",
+      "source": "subtopic-1-2",
+      "target": "subtopic-4-1",
+      "link": "Quantum electron spin and Pauli exclusion principle dictate individual atomic magnetic moments, forming the basis for material classification."
+    },
+    {
+      "id": "conn-6",
+      "source": "subtopic-2-3",
+      "target": "subtopic-4-2",
+      "link": "Solenoids utilize soft ferromagnetic cores with low coercivity to drastically amplify internal field strength B."
+    },
+    {
+      "id": "conn-7",
+      "source": "subtopic-3-2",
+      "target": "subtopic-4-3",
+      "link": "Current loops experiencing mechanical torque (motors) represent the exact physical inverse of rotating loops experiencing induced EMF (generators)."
+    }
+  ]
+}

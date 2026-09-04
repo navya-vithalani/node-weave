@@ -21,11 +21,15 @@ interface UploaderData {
   sessionName: string;
   files: { id: string; name: string; type: string; size: number; content?: string }[];
   importedSessions: OriginalStructure[];
+  isTest?: boolean; // Dev test mode - skip AI, simulate loading
 }
 
 interface ProcessingState {
   sessionName: string;
   status?: string;
+  error?: string | null;
+  onBackToUpload?: () => void;
+  isComplete?: boolean;
 }
 
 function App() {
@@ -149,6 +153,21 @@ function App() {
     setProcessingState({ sessionName: data.sessionName });
     setPhase('loading');
 
+    // Test mode: simulate 35 second loading without AI
+    if (data.isTest) {
+      setTimeout(() => {
+        // Create empty structure for testing
+        const emptyStructure: OriginalStructure = {
+          sessionName: data.sessionName,
+          createdAt: new Date().toISOString(),
+          topics: [],
+          connections: []
+        };
+        setResultStructure(emptyStructure);
+      }, 35000);
+      return;
+    }
+
     try {
       let result: OriginalStructure;
 
@@ -167,8 +186,7 @@ function App() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process';
       setError(errorMessage);
-      // Go back to upload on error
-      setPhase('upload');
+      // Error is shown in Loading screen, don't change phase
     }
   }, []);
 
@@ -199,17 +217,6 @@ function App() {
         <span className="navbar__mascot">{'/ᐠ｡ꞈ｡ᐟ\\'}</span>
       </header>
 
-      {/* ---- Error display ---- */}
-      {error && (
-        <div className="app__error panel">
-          <span className="app__error-icon">⚠</span>
-          <span className="app__error-text">{error}</span>
-          <button className="app__error-retry" onClick={handleRetry}>
-            Back to Upload
-          </button>
-        </div>
-      )}
-
       {/* ---- Phase: Boot tutorial ---- */}
       {phase === 'boot' && (
         <BootTutorial
@@ -228,6 +235,9 @@ function App() {
         <Loading
           sessionName={processingState.sessionName}
           status={processingState.status}
+          error={error}
+          onBackToUpload={handleRetry}
+          isComplete={processingState.isComplete}
         />
       )}
 
