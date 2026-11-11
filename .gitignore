@@ -6,3 +6,4 @@ dist/
 test-output.json
 .claude
 .vercel
+.aider*
