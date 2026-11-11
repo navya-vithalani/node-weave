@@ -84,6 +84,11 @@ export interface ChunkStore {
   chunks: Chunk[]
 }
 
+export interface SessionImport {
+  structure: OriginalStructure
+  chunkStore: ChunkStore
+}
+
 // §3.5 — Export payload
 export interface ExportPayload {
   original?: OriginalStructure

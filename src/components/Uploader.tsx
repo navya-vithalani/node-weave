@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { OriginalStructure } from '../types/schema';
+import type { Chunk, OriginalStructure, SessionImport } from '../types/schema';
 import '../styles/uploader-ext.css';
 import { extractTextFromPDF } from '../lib/pdf';
 
@@ -15,7 +15,7 @@ interface UploaderProps {
   onContinue: (data: {
     sessionName: string;
     files: UploadedFile[];
-    importedSessions: OriginalStructure[];
+    importedSessions: SessionImport[];
     isTest?: boolean;
   }) => void;
 }
@@ -27,7 +27,7 @@ export default function Uploader({ onContinue }: UploaderProps) {
   const [sessionName, setSessionName] = useState('');
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
-  const [importedSessions, setImportedSessions] = useState<OriginalStructure[]>([]);
+  const [importedSessions, setImportedSessions] = useState<SessionImport[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const dropzoneRef = useRef<HTMLDivElement>(null);
@@ -96,18 +96,38 @@ export default function Uploader({ onContinue }: UploaderProps) {
     setValidationError(null);
     try {
       const text = await file.text();
-      const data = JSON.parse(text) as OriginalStructure;
+      const data = JSON.parse(text) as Record<string, unknown>;
+      const structure = (data.working ?? data.original ?? data) as OriginalStructure;
 
-      if (!data.sessionName || !Array.isArray(data.topics)) {
+      if (!structure.sessionName || !Array.isArray(structure.topics)) {
         setValidationError('Invalid session file. Missing sessionName or topics array.');
         return false;
       }
 
+      const rawChunks = (data.chunkStore as { chunks?: unknown[] } | undefined)?.chunks ?? [];
+      if (!Array.isArray(rawChunks)) {
+        setValidationError('Invalid session file. The chunk store must contain a chunks array.');
+        return false;
+      }
+      const chunks = rawChunks.filter((chunk): chunk is Chunk => {
+        if (!chunk || typeof chunk !== 'object') return false;
+        const candidate = chunk as Partial<Chunk>;
+        return typeof candidate.id === 'string'
+          && typeof candidate.docId === 'string'
+          && typeof candidate.text === 'string'
+          && Array.isArray(candidate.embedding)
+          && candidate.embedding.every((value) => typeof value === 'number' && Number.isFinite(value));
+      });
+      if (chunks.length !== rawChunks.length) {
+        setValidationError('Invalid session file. One or more source chunks are malformed.');
+        return false;
+      }
+      const importedSession: SessionImport = { structure, chunkStore: { chunks } };
       setImportedSessions(prev => {
-        const newSessions = [...prev, data];
+        const newSessions = [...prev, importedSession];
         // Set session name from first session if not set
         if (prev.length === 0) {
-          setSessionName(`${data.sessionName} - 2`);
+          setSessionName(`${structure.sessionName} - 2`);
         }
         return newSessions;
       });
@@ -406,12 +426,14 @@ export default function Uploader({ onContinue }: UploaderProps) {
               {importedSessions.length > 0 && (
                 <div className="uploader__file-list">
                   {importedSessions.map((session, index) => {
-                    const isWorking = 'modified' in session && session.modified === true && 'customInsights' in session;
+                    const isWorking = 'modified' in session.structure && session.structure.modified === true && 'customInsights' in session.structure;
                     return (
                       <div key={index} className="uploader__file-item">
                         <span className="uploader__file-icon">📁</span>
-                        <span className="uploader__file-name">{session.sessionName}</span>
-                        <span className="uploader__file-size">{session.topics.length} topics</span>
+                        <span className="uploader__file-name">{session.structure.sessionName}</span>
+                        <span className="uploader__file-size">
+                          {session.structure.topics.length} topics · {session.chunkStore.chunks.length} source notes
+                        </span>
                         <span className={`uploader__imported-badge ${isWorking ? '' : 'uploader__imported-badge--original'}`}>
                           {isWorking ? 'Working' : 'Original'}
                         </span>

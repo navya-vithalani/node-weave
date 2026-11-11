@@ -1,15 +1,19 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import type { Connection, CustomInsight, OriginalStructure, WorkingStructure } from '../types/schema';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import type { ChunkStore, Connection, CustomInsight, OriginalStructure, WorkingStructure } from '../types/schema';
 import PhysicsGraph, { type GraphNode } from './PhysicsGraph';
 import TreeView, { type TreeLayout } from './TreeView';
 import DocView from './DocView';
 import NodeEditor from './NodeEditor';
+import ChatPanel from './ChatPanel';
 import { getTopicInsights, graphNodeId } from '../lib/graphIds';
+import { applyTheme, loadSavedTheme, THEMES } from '../lib/theme';
+import type { ThemeName } from '../lib/theme';
 import '../styles/dashboard.css';
 
 interface DashboardProps {
   sessionName: string;
   structure: OriginalStructure;
+  chunkStore: ChunkStore;
   customInsights?: CustomInsight[];
 }
 
@@ -77,7 +81,6 @@ export default function Dashboard(props: DashboardProps) {
   const [workingStructure, setWorkingStructure] = useState<WorkingStructure>(
     () => createWorkingCopy(props.structure, props.customInsights)
   );
-  const [hasEdits, setHasEdits] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('graph');
   const [editMode, setEditMode] = useState(false);
   const [controlsOpen, setControlsOpen] = useState(false);
@@ -104,11 +107,7 @@ export default function Dashboard(props: DashboardProps) {
   const [focusedBranchId, setFocusedBranchId] = useState('');
   const [docSearch, setDocSearch] = useState('');
   const [collapsibleSections, setCollapsibleSections] = useState(true);
-  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([
-    { role: 'assistant', content: 'Ask me anything about your knowledge graph.' },
-  ]);
-  const [chatInput, setChatInput] = useState('');
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [accentTheme, setAccentTheme] = useState<ThemeName>(() => loadSavedTheme() ?? 'orange');
 
   const searchableNodes = useMemo(() => getSearchableNodes(workingStructure), [workingStructure]);
   const selectedNode = nodeSelection
@@ -126,7 +125,6 @@ export default function Dashboard(props: DashboardProps) {
 
   useEffect(() => {
     setWorkingStructure(createWorkingCopy(props.structure, props.customInsights));
-    setHasEdits(false);
     setExpandedTopics(new Set(props.structure.topics.map((topic) => graphNodeId('topic', topic.id))));
     setFocusNodeId(null);
     setFocusedBranchId('');
@@ -137,18 +135,12 @@ export default function Dashboard(props: DashboardProps) {
   }, [props.customInsights, props.structure]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages]);
+    applyTheme(accentTheme);
+  }, [accentTheme]);
 
-  const handleChatSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!chatInput.trim()) return;
-    setChatMessages((previous) => [...previous, { role: 'user', content: chatInput }]);
-    setChatInput('');
-    setTimeout(() => {
-      setChatMessages((previous) => [...previous, { role: 'assistant', content: 'Based on your knowledge graph...' }]);
-    }, 1000);
-  };
+  const updateWorkingCopy = useCallback((update: (previous: WorkingStructure) => WorkingStructure) => {
+    setWorkingStructure((previous) => ({ ...update(previous), modified: true }));
+  }, []);
 
   const handleChatToggle = () => {
     if (detailNode || nodeSelection || selectedConnectionId) {
@@ -168,6 +160,44 @@ export default function Dashboard(props: DashboardProps) {
     setSidePanelOpen(true);
   }, []);
 
+  const handleChatSourceSelect = useCallback((sourceId: string) => {
+    const node = searchableNodes.find((item) => item.schemaId === sourceId);
+    if (!node) return;
+    setFocusNodeId(node.id);
+    setFocusedBranchId('');
+    if (node.type === 'subtopic' && node.parentTopicId) {
+      setShowSubtopics(true);
+      setExpandedTopics((previous) => new Set(previous).add(node.parentTopicId!));
+    }
+    handleNodeDetail(node);
+  }, [handleNodeDetail, searchableNodes]);
+
+  const handleAddChatInsight = useCallback((text: string, sourceIds: string[]) => {
+    const sourceId = sourceIds.find((id) =>
+      workingStructure.topics.some((topic) =>
+        topic.id === id || topic.subtopics.some((subtopic) => subtopic.id === id)
+      )
+    );
+    const anchorTopicId = workingStructure.topics.find((topic) =>
+      topic.id === sourceId || topic.subtopics.some((subtopic) => subtopic.id === sourceId)
+    )?.id ?? workingStructure.topics[0]?.id;
+    if (!anchorTopicId) return;
+
+    const insight: CustomInsight = {
+      id: crypto.randomUUID(),
+      name: 'Insight from Miso',
+      summary: text,
+      anchorTopicId,
+      createdAt: new Date().toISOString(),
+      modified: true,
+    };
+    updateWorkingCopy((previous) => ({ ...previous, customInsights: [...previous.customInsights, insight] }));
+    setExpandedTopics((previous) => new Set(previous).add(graphNodeId('topic', anchorTopicId)));
+    setSidePanelOpen(true);
+    setDetailNode(null);
+    setNodeSelection(null);
+  }, [updateWorkingCopy, workingStructure]);
+
   const handleNodeSelect = useCallback((node: GraphNode) => {
     if (!node.schemaId) return;
     setDetailNode(null);
@@ -182,11 +212,6 @@ export default function Dashboard(props: DashboardProps) {
     setSelectedConnectionId(connectionId);
     setConnectionError('');
     setSidePanelOpen(true);
-  }, []);
-
-  const updateWorkingCopy = useCallback((update: (previous: WorkingStructure) => WorkingStructure) => {
-    setWorkingStructure((previous) => ({ ...update(previous), modified: true }));
-    setHasEdits(true);
   }, []);
 
   const handleSelectSearchResult = useCallback((node: GraphNode) => {
@@ -560,13 +585,22 @@ export default function Dashboard(props: DashboardProps) {
     setExportMenuOpen(false);
     let succeeded = true;
     if (kind === 'original' || kind === 'both') {
-      succeeded = downloadJSON(props.structure, `${safeSessionFileName}-original.json`) && succeeded;
+      succeeded = downloadJSON({
+        original: props.structure,
+        chunkStore: props.chunkStore,
+      }, `${safeSessionFileName}-original.json`) && succeeded;
     }
     if (kind === 'working' || kind === 'both') {
-      succeeded = downloadJSON(workingStructure, `${safeSessionFileName}-modified.json`) && succeeded;
+      succeeded = downloadJSON({
+        working: workingStructure,
+        chunkStore: props.chunkStore,
+      }, `${safeSessionFileName}-modified.json`) && succeeded;
     }
     if (!succeeded) return;
-    setExportNotice(`Exported ${kind === 'both' ? 'both structures' : kind === 'original' ? 'the original' : 'the modified copy'}. Source chunks and embeddings are not available in this session.`);
+    const exportName = kind === 'both' ? 'both session files' : kind === 'original' ? 'the original session' : 'the modified session';
+    setExportNotice(props.chunkStore.chunks.length
+      ? `Exported ${exportName}, including ${props.chunkStore.chunks.length} source notes and their local embeddings.`
+      : `Exported ${exportName}. This session has no source notes, so restored chat will use the knowledge map only.`);
   };
 
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -592,6 +626,18 @@ export default function Dashboard(props: DashboardProps) {
           >
             Chat
           </button>
+          <label className="dashboard__theme-picker">
+            <span className="sr-only">Accent color</span>
+            <select
+              aria-label="Accent color"
+              value={accentTheme}
+              onChange={(event) => setAccentTheme(event.target.value as ThemeName)}
+            >
+              {(Object.keys(THEMES) as ThemeName[]).map((theme) => (
+                <option key={theme} value={theme}>{theme[0].toUpperCase() + theme.slice(1)}</option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             className={`dashboard__edit-btn ${editMode ? 'dashboard__edit-btn--active' : ''}`}
@@ -614,13 +660,10 @@ export default function Dashboard(props: DashboardProps) {
                 <button type="button" role="menuitem" onClick={() => handleExport('original')}>Original JSON</button>
                 <button type="button" role="menuitem" onClick={() => handleExport('working')}>Modified JSON</button>
                 <button type="button" role="menuitem" onClick={() => handleExport('both')}>Both JSON files</button>
-                <p>Structure only: source chunks and embeddings are unavailable.</p>
+                <p>Includes source notes and local embeddings when available.</p>
               </div>
             )}
           </div>
-          <span className={`dashboard__mode-indicator ${editMode ? 'dashboard__mode-indicator--editing' : ''}`}>
-            {editMode ? (hasEdits ? 'WORKING COPY · SAVED' : 'EDITING COPY') : 'VIEW MODE'}
-          </span>
         </div>
       </header>
       {exportNotice && <div className="dashboard__export-notice" role="status">{exportNotice}</div>}
@@ -778,10 +821,10 @@ export default function Dashboard(props: DashboardProps) {
                   <h2>Document</h2>
                   <label className="controls-panel__check">
                     <input type="checkbox" checked={collapsibleSections} onChange={(event) => setCollapsibleSections(event.target.checked)} />
-                    <span>Collapsible JSON sections</span>
+                    <span>Foldable reading sections</span>
                   </label>
                   <div className="controls-panel__field">
-                    <label htmlFor="doc-search">Search within JSON</label>
+                    <label htmlFor="doc-search">Search document</label>
                     <input
                       id="doc-search"
                       type="search"
@@ -839,7 +882,6 @@ export default function Dashboard(props: DashboardProps) {
         </aside>
 
         <section className={`dashboard__view ${editMode ? 'dashboard__view--editing' : ''}`} aria-label={`${viewMode} view`}>
-          {editMode && <div className="dashboard__edit-banner">EDIT MODE · Select blocks to change content; drag blocks to arrange.</div>}
           {viewMode === 'graph' && (
             <PhysicsGraph
               structure={workingStructure}
@@ -885,8 +927,22 @@ export default function Dashboard(props: DashboardProps) {
           )}
         </section>
 
-        {sidePanelOpen && (
-          <aside className={`dashboard__side-panel panel ${detailNode || selectedNode || selectedConnection ? 'dashboard__side-panel--detail' : 'dashboard__chat'}`}>
+        <aside
+          className={`dashboard__side-panel panel ${detailNode || selectedNode || selectedConnection ? 'dashboard__side-panel--detail' : 'dashboard__chat'}`}
+          style={{ display: sidePanelOpen ? undefined : 'none' }}
+          aria-label="Chat and details panel"
+        >
+          <div
+            className="dashboard__chat-slot"
+            hidden={Boolean(detailNode || (editMode && (selectedNode || selectedConnection)))}
+          >
+            <ChatPanel
+              structure={workingStructure}
+              chunkStore={props.chunkStore}
+              onAddInsight={handleAddChatInsight}
+              onSelectSource={handleChatSourceSelect}
+            />
+          </div>
             {editMode && selectedNode ? (
               <>
                 <div className="dashboard__chat-header">
@@ -971,32 +1027,8 @@ export default function Dashboard(props: DashboardProps) {
                   )}
                 </div>
               </>
-            ) : (
-              <>
-                <div className="dashboard__chat-header"><span className="terminal-label">CHAT</span></div>
-                <div className="dashboard__chat-messages">
-                  {chatMessages.map((message, index) => (
-                    <div key={index} className={`dashboard__message dashboard__message--${message.role}`}>
-                      <div className="dashboard__message-content">{message.content}</div>
-                    </div>
-                  ))}
-                  <div ref={chatEndRef} />
-                </div>
-                <div className="dashboard__chat-input-area">
-                  <form onSubmit={handleChatSubmit} className="dashboard__chat-form">
-                    <input
-                      className="dashboard__chat-input"
-                      placeholder="Ask..."
-                      value={chatInput}
-                      onChange={(event) => setChatInput(event.target.value)}
-                    />
-                    <button type="submit" className="dashboard__chat-submit">→</button>
-                  </form>
-                </div>
-              </>
-            )}
-          </aside>
-        )}
+            ) : null}
+        </aside>
       </div>
     </main>
   );

@@ -175,7 +175,8 @@ export default function Loading({ status, error, onBackToUpload, isComplete }: L
   useEffect(() => {
     if (status && !hasError) {
       let charIndex = 0;
-      const text = '[STREAMING STRUCTURAL JSON]';
+      setStreamedText('');
+      const text = status;
       const streamInterval = setInterval(() => {
         if (charIndex <= text.length) {
           setStreamedText(text.slice(0, charIndex));
@@ -245,21 +246,18 @@ export default function Loading({ status, error, onBackToUpload, isComplete }: L
                     <>
                       <span className="loading__arrow">›</span>
                       <span className="loading__log-text">{line.text}</span>
-                      {status && line.id === PROCESSING_STEPS.length - 1 && (
-                        <span className="loading__streaming">
-                          {streamedText}
-                          <span className={`loading__cursor-inline ${cursorVisible ? 'visible' : ''}`}>
-                            ▋
-                          </span>
-                        </span>
-                      )}
-                      {status && line.id === PROCESSING_STEPS.length - 1 && (
-                        <span className="loading__ok">[OK]</span>
-                      )}
                     </>
                   )}
                 </div>
               ))}
+
+              {status && !hasError && (
+                <div className="loading__prompt-line loading__prompt-line--status" role="status">
+                  <span className="loading__arrow">›</span>
+                  <span className="loading__streaming">{streamedText}</span>
+                  <span className={`loading__cursor-blink ${cursorVisible ? 'visible' : ''}`}>▋</span>
+                </div>
+              )}
 
               {/* Prompt line */}
               {!status && !error && !hasError && (

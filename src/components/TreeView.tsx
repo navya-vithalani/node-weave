@@ -539,6 +539,20 @@ function TreeViewContent({
     });
   }, [layout]);
 
+  const saveNodePosition = useCallback((nodeId: string, position: { x: number; y: number }) => {
+    setRenderNodes((current) => current.map((node) =>
+      node.id === nodeId ? { ...node, position } : node
+    ));
+    setManualPositions((previous) => ({
+      ...previous,
+      [layout]: { ...previous[layout], [nodeId]: position },
+    }));
+  }, [layout]);
+
+  const handleNodeDrag = useCallback((_: unknown, node: Node<TreeCardData>) => {
+    saveNodePosition(node.id, node.position);
+  }, [saveNodePosition]);
+
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node<TreeCardData>) => {
     if (editMode && node.data.graphNode) onNodeSelect(node.data.graphNode);
   }, [editMode, onNodeSelect]);
@@ -564,11 +578,13 @@ function TreeViewContent({
         edges={edges}
         nodeTypes={treeNodeTypes}
         onNodesChange={handleNodesChange}
+        onNodeDrag={handleNodeDrag}
+        onNodeDragStop={handleNodeDrag}
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
         onEdgeMouseEnter={handleEdgeMouseEnter}
         onEdgeMouseLeave={() => setEdgeTooltip(null)}
-        nodesDraggable
+        nodesDraggable={editMode}
         fitView
         minZoom={0.1}
         fitViewOptions={{ padding: 0.2 }}

@@ -3,7 +3,9 @@ import BootTutorial from './components/BootTutorial';
 import Uploader from './components/Uploader';
 import Loading from './components/Loading';
 import Dashboard from './components/Dashboard';
-import type { OriginalStructure } from './types/schema';
+import type { Chunk, ChunkStore, OriginalStructure, SessionImport } from './types/schema';
+import { chunkDocument } from './lib/chunking';
+import { embedBatch } from './lib/embeddings';
 import './styles/global.css';
 
 /* ---------------------------------------------------------------
@@ -20,7 +22,7 @@ type AppPhase = 'boot' | 'upload' | 'loading' | 'dashboard';
 interface UploaderData {
   sessionName: string;
   files: { id: string; name: string; type: string; size: number; content?: string }[];
-  importedSessions: OriginalStructure[];
+  importedSessions: SessionImport[];
   isTest?: boolean; // Dev test mode - skip AI, simulate loading
 }
 
@@ -36,7 +38,43 @@ function App() {
   const [phase, setPhase] = useState<AppPhase>('boot');
   const [processingState, setProcessingState] = useState<ProcessingState | null>(null);
   const [resultStructure, setResultStructure] = useState<OriginalStructure | null>(null);
+  const [resultChunkStore, setResultChunkStore] = useState<ChunkStore>({ chunks: [] });
   const [error, setError] = useState<string | null>(null);
+
+  const buildChunkStore = async (files: UploaderData['files']): Promise<ChunkStore> => {
+    const textChunks = files.flatMap((file) => file.content
+      ? chunkDocument(file.id, file.content)
+      : []);
+    const chunks: Chunk[] = [];
+    let embeddingFailure: string | null = null;
+    for (let offset = 0; offset < textChunks.length; offset += 16) {
+      const batch = textChunks.slice(offset, offset + 16);
+      setProcessingState((previous) => previous ? {
+        ...previous,
+        status: `COMPUTING LOCAL MEMORY · ${Math.min(offset + batch.length, textChunks.length)}/${textChunks.length} NOTES`,
+      } : previous);
+      try {
+        const embeddings = await embedBatch(batch.map((chunk) => chunk.text));
+        chunks.push(...batch.map((chunk, index) => ({
+          ...chunk,
+          embedding: Array.from(embeddings[index]),
+        })));
+      } catch (error) {
+        embeddingFailure = error instanceof Error ? error.message : String(error);
+        chunks.push(...batch.map((chunk) => ({ ...chunk, embedding: [] })));
+      }
+    }
+
+    if (embeddingFailure) {
+      setProcessingState((previous) => previous ? {
+        ...previous,
+        status: `LOCAL SEMANTIC SEARCH UNAVAILABLE. Source notes are retained for keyword search. ${embeddingFailure}`,
+      } : previous);
+      return { chunks: chunks.map((chunk) => ({ ...chunk, embedding: [] })) };
+    }
+
+    return { chunks };
+  };
 
   /* ---- Tutorial lifecycle ---- */
 
@@ -50,12 +88,13 @@ function App() {
 
   /* ---- Process new files through AI ---- */
 
-  const processNewFiles = async (sessionName: string, files: UploaderData['files']): Promise<OriginalStructure> => {
+  const processNewFiles = async (sessionName: string, files: UploaderData['files']): Promise<SessionImport> => {
     const documents = files.map(file => ({
       id: file.id,
       text: file.content || '',
     }));
 
+    setProcessingState((previous) => previous ? { ...previous, status: 'ASKING THE MODEL TO SHAPE YOUR MAP…' } : previous);
     const response = await fetch('/api/structure', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -84,23 +123,27 @@ function App() {
     }
 
     result.sessionName = sessionName;
-    return result;
+    const chunkStore = await buildChunkStore(files);
+    return { structure: result, chunkStore };
   };
 
   /* ---- Process single imported session (no AI needed) ---- */
 
-  const processSingleSession = (sessionName: string, session: OriginalStructure): OriginalStructure => {
-    return { ...session, sessionName };
+  const processSingleSession = (sessionName: string, session: SessionImport): SessionImport => {
+    return {
+      structure: { ...session.structure, sessionName },
+      chunkStore: session.chunkStore,
+    };
   };
 
   /* ---- Merge multiple sessions through AI ---- */
 
-  const processMultipleSessions = async (sessionName: string, sessions: OriginalStructure[]): Promise<OriginalStructure> => {
+  const processMultipleSessions = async (sessionName: string, sessions: SessionImport[]): Promise<SessionImport> => {
     const partialStructures = sessions.map(session => ({
-      sessionName: session.sessionName,
-      createdAt: session.createdAt,
-      topics: session.topics,
-      connections: session.connections,
+      sessionName: session.structure.sessionName,
+      createdAt: session.structure.createdAt,
+      topics: session.structure.topics,
+      connections: session.structure.connections,
     }));
 
     const response = await fetch('/api/structure', {
@@ -133,7 +176,23 @@ function App() {
     }
 
     result.sessionName = sessionName;
-    return result;
+    const preservedInsights = sessions.flatMap((session) => [
+      ...(session.structure.customInsights ?? []),
+      ...session.structure.topics.flatMap((topic) => topic.customInsights ?? []),
+    ]);
+    if (preservedInsights.length) {
+      result.customInsights = [
+        ...(result.customInsights ?? []),
+        ...preservedInsights,
+      ].filter((insight, index, list) => list.findIndex((item) => item.id === insight.id) === index);
+    }
+    const chunkStore: ChunkStore = {
+      chunks: sessions.flatMap((session, sessionIndex) => session.chunkStore.chunks.map((chunk) => ({
+        ...chunk,
+        id: `session-${sessionIndex + 1}:${chunk.id}`,
+      }))),
+    };
+    return { structure: result, chunkStore };
   };
 
   /* ---- Uploader lifecycle ---- */
@@ -163,13 +222,14 @@ function App() {
           topics: [],
           connections: []
         };
+        setResultChunkStore({ chunks: [] });
         setResultStructure(emptyStructure);
       }, 35000);
       return;
     }
 
     try {
-      let result: OriginalStructure;
+      let result: SessionImport;
 
       if (hasImportedSessions && data.importedSessions.length === 1 && !hasNewFiles) {
         // Single session restore - no AI needed
@@ -182,7 +242,8 @@ function App() {
         result = await processNewFiles(data.sessionName, data.files);
       }
 
-      setResultStructure(result);
+      setResultChunkStore(result.chunkStore);
+      setResultStructure(result.structure);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process';
       setError(errorMessage);
@@ -246,6 +307,7 @@ function App() {
         <Dashboard
           sessionName={resultStructure.sessionName}
           structure={resultStructure}
+          chunkStore={resultChunkStore}
         />
       )}
     </div>

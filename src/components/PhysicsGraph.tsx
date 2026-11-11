@@ -741,14 +741,14 @@ function PhysicsGraphContent({
     if (editMode && typeof connectionId === 'string') onConnectionSelect(connectionId);
   }, [editMode, onConnectionSelect]);
 
-  const handleNodeDrag = useCallback((_: React.MouseEvent, node: Node) => {
+  const handleNodeDrag = useCallback((_: MouseEvent | TouchEvent, node: Node) => {
     const simulationNode = simulationNodes.find((item) => item.id === node.id);
     if (!simulationNode) return;
     const radius = getNodeRadius(simulationNode.nodeType, nodeScale);
     moveNode(node.id, node.position.x + radius, node.position.y + radius, true);
   }, [moveNode, nodeScale, simulationNodes]);
 
-  const handleNodeDragStop = useCallback((_: React.MouseEvent, node: Node) => {
+  const handleNodeDragStop = useCallback((_: MouseEvent | TouchEvent, node: Node) => {
     const simulationNode = simulationNodes.find((item) => item.id === node.id);
     if (!simulationNode) return;
     const radius = getNodeRadius(simulationNode.nodeType, nodeScale);
