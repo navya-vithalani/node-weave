@@ -300,21 +300,26 @@
 
 .circle-node--subtopic circle {
   stroke-width: 1.5;
-  stroke: var(--border-soft);
+  stroke: var(--muted);
 }
 
-.circle-node--insight circle {
+.circle-node--customInsight circle {
   stroke-width: 1.5;
   stroke: var(--magenta);
 }
 
 .circle-node__label {
   position: absolute;
-  bottom: -20px;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 160px;
   font-family: var(--font-body);
   font-size: 0.7rem;
   color: var(--text);
-  white-space: nowrap;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
   text-shadow: 0 1px 2px var(--bg);
 }
 
@@ -378,6 +383,19 @@
   color: var(--muted);
   line-height: 1.5;
   margin: 0;
+}
+
+.detail-panel__points {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 12px 0 0;
+  padding-left: 18px;
+}
+
+.detail-panel__points li + li {
+  margin-top: 6px;
 }
 
 /* Titles toggle */

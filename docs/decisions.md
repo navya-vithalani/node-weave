@@ -103,3 +103,46 @@ Output ONLY valid JSON matching the given schema. No prose, no markdown fences, 
 **Why:** Users should be able to name their sessions. For Restore, a default that appends " - 2" provides a clear indication that this is a new, merged session.
 
 **Affects:** `Uploader.tsx` (session input in Restore tab), `App.tsx` (UploaderData handling)
+
+---
+
+### 2026-11-11 — Graph rendering — force-directed layout (implemented)
+
+Graph rendering — force-directed physics graph (like Obsidian’s graph view)
+
+Replace the static elkjs layout with a continuous physics simulation using d3-force. React Flow remains the renderer (nodes/edges as components), but node positions come from the d3-force simulation, updated on every simulation “tick,” not from a one-time layout calculation.
+
+Forces to configure:
+
+forceLink — every edge acts as a spring pulling its two connected nodes together. This is what naturally makes topic clusters form (subtopics only linked to their own topic, plus occasional cross-topic connections, will visually group by topic without any extra “clustering” logic — the link force alone produces this).
+forceManyBody (negative/repulsive charge) — pushes all nodes apart so unconnected clusters spread out rather than piling in the center.
+forceCollide — collision radius per node (matching its visual circle radius) so nodes never visually overlap.
+forceCenter — keeps the whole graph roughly centered in the viewport.
+
+Node visuals:
+
+All nodes are circles. Radius by type: topic nodes ~24px, subtopic nodes ~14px, customInsight nodes ~16px (concrete starting values — tune visually).
+Color-coded by type using the existing palette (topic = accent color, subtopic = a lighter/desaturated variant, customInsight = the neon magenta outline already defined).
+Default state: no text on any node. Nodes are pure colored circles.
+
+“Show titles” toggle:
+
+OFF (default): circles only, no labels.
+ON: every visible node gets its name rendered as small text directly below the circle.
+This is purely a rendering flag on the node component — it has no effect on the physics simulation or on show/hide subtopics logic. Keep these two toggles fully independent.
+
+“Show subtopics” toggle — this changes which nodes/edges exist in the simulation, not just their visibility:
+
+ON: full graph — topic nodes, subtopic nodes, all hierarchy edges (topic→subtopic) and all cross-topic connections edges rendered exactly as they exist in the flattened JSON (§3.3).
+OFF: subtopic nodes are removed from the simulation entirely (not just hidden — actually removed, so they stop participating in physics). Any edge that had a subtopic as an endpoint gets re-anchored to that subtopic’s parent topic instead. If this produces multiple edges between the same two topics (e.g. two different subtopics under Topic A both connected to Topic B), merge them into a single edge rather than rendering duplicates.
+Toggling this should smoothly reheat the simulation (simulation.alpha(1).restart()) so nodes visibly animate to their new positions rather than snapping.
+
+Click behavior on a topic node:
+
+Single click, only when that topic’s subtopics are currently hidden: add its subtopic nodes into the simulation (seed their initial position at/near the parent node’s current coordinates, with small random jitter so they don’t all start stacked exactly on top of each other), add their hierarchy edges, and reheat the simulation so they animate outward naturally under the physics forces rather than popping into a pre-computed position.
+Double click (on a topic OR subtopic node): open a detail panel showing that node’s full name + summary (and points for subtopics). Use a standard double-click debounce (~250–300ms) so a double-click doesn’t also fire the single-click expand behavior first — this timing conflict is a common bug source, worth testing explicitly.
+On double-click, also do a light reheat (simulation.alpha(0.3).restart(), not a full alpha(1)) so surrounding nodes visibly shift a little in reaction, without triggering a full re-layout — this is what should produce the “it feels alive and reactive” impression you’re describing, without a jarring full rearrangement every time someone looks at a node.
+
+Ambient motion (“alive, growing” feeling):
+
+Full-time continuous jiggling (never letting the simulation fully cool down) is possible by keeping alphaTarget slightly above 0 permanently, but this costs CPU indefinitely, even when nobody’s interacting — worth being deliberate about this tradeoff rather than defaulting to it. Recommended default: let the simulation settle to rest after each interaction (expand, toggle, double-click), so it’s calm most of the time, and only animates during actual state changes. If the “always gently drifting” feel matters enough to you to accept the battery/performance cost, that’s a one-line config change (alphaTarget(0.02) instead of alphaTarget(0)), not an architectural one — worth deciding after you see how it feels at rest first.

@@ -8,6 +8,10 @@ import {
   Edge,
   NodeProps,
   ReactFlowProvider,
+  useReactFlow,
+  useUpdateNodeInternals,
+  Handle,
+  Position,
   BackgroundVariant,
   MarkerType,
   Panel,
@@ -21,7 +25,7 @@ import * as d3Force from 'd3-force';
 const NODE_RADIUS = {
   topic: 24,
   subtopic: 14,
-  insight: 16,
+  customInsight: 16,
 } as const;
 
 // Force configuration
@@ -30,6 +34,7 @@ const FORCE_CONFIG = {
   manyBodyStrength: -150,
   collidePadding: 4,
   centerStrength: 0.05,
+  alphaDecay: 0.08,
 };
 
 interface PhysicsGraphProps {
@@ -41,6 +46,7 @@ interface GraphNode {
   type: 'topic' | 'subtopic' | 'customInsight';
   name: string;
   summary: string;
+  points?: string[];
   parentTopicId?: string;
   modified?: boolean;
 }
@@ -71,6 +77,11 @@ function DetailPanel({ node, onClose }: DetailPanelProps) {
       {node.summary && (
         <p className="detail-panel__summary">{node.summary}</p>
       )}
+      {node.points && node.points.length > 0 && (
+        <ul className="detail-panel__points">
+          {node.points.map((point) => <li key={point}>{point}</li>)}
+        </ul>
+      )}
     </div>
   );
 }
@@ -91,8 +102,8 @@ function CircleNode({ data, selected, id }: NodeProps<Node>) {
   const getColor = () => {
     switch (nodeType) {
       case 'topic': return 'var(--accent)';
-      case 'subtopic': return 'var(--border-soft)';
-      case 'insight': return 'var(--magenta)';
+      case 'subtopic': return 'var(--muted)';
+      case 'customInsight': return 'var(--magenta)';
       default: return 'var(--accent)';
     }
   };
@@ -117,6 +128,18 @@ function CircleNode({ data, selected, id }: NodeProps<Node>) {
           strokeWidth={nodeType === 'topic' ? 2 : 1.5}
         />
       </svg>
+      <Handle
+        type="target"
+        position={Position.Top}
+        isConnectable={false}
+        style={{ width: 1, height: 1, opacity: 0, border: 0 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        isConnectable={false}
+        style={{ width: 1, height: 1, opacity: 0, border: 0 }}
+      />
       {showTitle && (
         <div className="circle-node__label">{String(data.label ?? '')}</div>
       )}
@@ -133,8 +156,14 @@ interface SimulationNode extends d3Force.SimulationNodeDatum {
   nodeType: 'topic' | 'subtopic' | 'customInsight';
   name: string;
   summary: string;
+  points?: string[];
   parentTopicId?: string;
   modified?: boolean;
+}
+
+interface SimulationLink extends d3Force.SimulationLinkDatum<SimulationNode> {
+  id: string;
+  type: GraphEdge['type'];
 }
 
 function useForceSimulation(
@@ -144,36 +173,54 @@ function useForceSimulation(
   height: number
 ) {
   const [simulationNodes, setSimulationNodes] = useState<SimulationNode[]>([]);
-  const [simulationEdges, setSimulationEdges] = useState<d3Force.SimulationLinkDatum<SimulationNode>[]>([]);
+  const [simulationEdges, setSimulationEdges] = useState<SimulationLink[]>([]);
+  const [simulationSettled, setSimulationSettled] = useState(false);
   const simulationRef = useRef<d3Force.Simulation<SimulationNode, undefined> | null>(null);
+  const positionsRef = useRef(new Map<string, { x: number; y: number; vx: number; vy: number }>());
 
   useEffect(() => {
     if (nodes.length === 0) {
       setSimulationNodes([]);
       setSimulationEdges([]);
+      setSimulationSettled(true);
       return;
     }
 
+    setSimulationSettled(false);
     // Initialize positions at center with slight random spread
     const centerX = width / 2;
     const centerY = height / 2;
-    const initializedNodes: SimulationNode[] = nodes.map((node) => ({
-      ...node,
-      nodeType: node.type,
-      x: centerX + (Math.random() - 0.5) * 100,
-      y: centerY + (Math.random() - 0.5) * 100,
-    }));
+    const initializedNodes: SimulationNode[] = nodes.map((node) => {
+      const previousPosition = positionsRef.current.get(node.id);
+      const parentPosition = node.parentTopicId
+        ? positionsRef.current.get(node.parentTopicId)
+        : undefined;
+      const seedPosition = previousPosition ?? parentPosition;
+
+      return {
+        ...node,
+        nodeType: node.type,
+        x: seedPosition
+          ? seedPosition.x + (previousPosition ? 0 : (Math.random() - 0.5) * 24)
+          : centerX + (Math.random() - 0.5) * 100,
+        y: seedPosition
+          ? seedPosition.y + (previousPosition ? 0 : (Math.random() - 0.5) * 24)
+          : centerY + (Math.random() - 0.5) * 100,
+        vx: previousPosition?.vx ?? 0,
+        vy: previousPosition?.vy ?? 0,
+      };
+    });
 
     // Create d3-force simulation
     const simulation = d3Force.forceSimulation<SimulationNode>(initializedNodes)
-      .force('link', d3Force.forceLink<SimulationNode, GraphEdge>()
+      .alphaDecay(FORCE_CONFIG.alphaDecay)
+      .force('link', d3Force.forceLink<SimulationNode, SimulationLink>()
         .id((d) => d.id)
         .strength(FORCE_CONFIG.linkStrength))
       .force('charge', d3Force.forceManyBody()
         .strength(FORCE_CONFIG.manyBodyStrength))
-      .force('collide', d3Force.forceCollide()
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .radius((d: any) => {
+      .force('collide', d3Force.forceCollide<SimulationNode>()
+        .radius((d) => {
           const r = getNodeRadius(d.nodeType);
           return r + FORCE_CONFIG.collidePadding;
         }))
@@ -181,20 +228,23 @@ function useForceSimulation(
         .strength(FORCE_CONFIG.centerStrength));
 
     // Set up link force with edges
-    // NB: d3-force mutates link objects (source/target → node refs), so pass a shallow copy
-    // to keep `currentGraph.edges` pristine for later edge-type lookups.
-    const linkForce = simulation.force('link') as d3Force.ForceLink<SimulationNode, GraphEdge>;
-    linkForce.links(edges.map((e) => ({ ...e })));
+    // d3-force mutates endpoints into node references, so keep graph data pristine.
+    const linkForce = simulation.force('link') as d3Force.ForceLink<SimulationNode, SimulationLink>;
+    linkForce.links(edges.map((edge) => ({ ...edge })));
 
     simulation.on('tick', () => {
-      setSimulationNodes([...simulation.nodes()]);
-      setSimulationEdges([...linkForce.links()]);
+      const currentNodes = simulation.nodes();
+      positionsRef.current = new Map(currentNodes.map((node) => [
+        node.id,
+        { x: node.x ?? centerX, y: node.y ?? centerY, vx: node.vx ?? 0, vy: node.vy ?? 0 },
+      ]));
+      setSimulationNodes([...currentNodes]);
     });
+    simulation.on('end', () => setSimulationSettled(true));
 
     simulationRef.current = simulation;
-
-    // Run simulation to near completion
-    simulation.alpha(1).stop();
+    setSimulationNodes([...initializedNodes]);
+    setSimulationEdges(linkForce.links());
 
     return () => {
       simulation.stop();
@@ -209,17 +259,22 @@ function useForceSimulation(
     }
   }, []);
 
-  return { simulationNodes, simulationEdges, restartSimulation };
+  return { simulationNodes, simulationEdges, simulationSettled, restartSimulation };
 }
 
 function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
+  const { fitView } = useReactFlow();
+  const updateNodeInternals = useUpdateNodeInternals();
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasInitialFitRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
   const [showSubtopics, setShowSubtopics] = useState(true);
   const [showTitles, setShowTitles] = useState(false);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [detailNode, setDetailNode] = useState<GraphNode | null>(null);
-  const lastClickRef = useRef<{ id: string; time: number } | null>(null);
+  const pendingClickRef = useRef<{ id: string; timeout: number } | null>(null);
+  const showSubtopicsRef = useRef(showSubtopics);
+  showSubtopicsRef.current = showSubtopics;
   const DOUBLE_CLICK_DELAY = 300;
 
   // Build base graph (topics + insights only — no connections here)
@@ -274,6 +329,10 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
     return map;
   }, [structure]);
 
+  const topicIdMap = useMemo(() => new Map(
+    structure.topics.map((topic, topicIndex) => [topic.id, `topic-${topicIndex}`])
+  ), [structure]);
+
   // Build current graph: topics + insights + subtopics + all edge types
   const currentGraph = useMemo(() => {
     const nodes: GraphNode[] = [...baseGraph.nodes];
@@ -306,6 +365,7 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
           type: 'subtopic',
           name: sub.name,
           summary: sub.summary,
+          points: sub.points,
           parentTopicId: topicId,
           modified: sub.modified,
         });
@@ -319,9 +379,11 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
     });
 
     // Add cross-topic connection edges (resolving subtopic data IDs → node IDs)
+    const collapsedConnectionPairs = new Set<string>();
     structure.connections.forEach((conn, i) => {
       const resolveNodeId = (id: string): string | null => {
-        if (id.startsWith('topic-')) return id;
+        const topicNodeId = topicIdMap.get(id);
+        if (topicNodeId) return topicNodeId;
         const pos = subtopicIdMap.get(id);
         if (!pos) return null;
         const topicId = `topic-${pos.topicIndex}`;
@@ -335,6 +397,15 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
       const targetId = resolveNodeId(conn.target);
 
       if (sourceId && targetId && sourceId !== targetId) {
+        const sourceIsCollapsedTopic = sourceId.startsWith('topic-')
+          && !topicsWithSubtopics.has(sourceId);
+        const targetIsCollapsedTopic = targetId.startsWith('topic-')
+          && !topicsWithSubtopics.has(targetId);
+        const pairKey = [sourceId, targetId].sort().join('|');
+        if (!showSubtopics && sourceIsCollapsedTopic && targetIsCollapsedTopic) {
+          if (collapsedConnectionPairs.has(pairKey)) return;
+          collapsedConnectionPairs.add(pairKey);
+        }
         edges.push({
           id: `edge-conn-${i}`,
           source: sourceId,
@@ -345,10 +416,10 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
     });
 
     return { nodes, edges };
-  }, [baseGraph, subtopicIdMap, showSubtopics, expandedTopics, structure]);
+  }, [baseGraph, subtopicIdMap, topicIdMap, showSubtopics, expandedTopics, structure]);
 
   // Initialize force simulation
-  const { simulationNodes, simulationEdges, restartSimulation } = useForceSimulation(
+  const { simulationNodes, simulationEdges, simulationSettled, restartSimulation } = useForceSimulation(
     currentGraph.nodes,
     currentGraph.edges,
     dimensions.width,
@@ -369,11 +440,6 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
 
-  // Restart simulation when graph topology changes
-  useEffect(() => {
-    restartSimulation(1);
-  }, [currentGraph.nodes, currentGraph.edges, dimensions.width, dimensions.height, restartSimulation]);
-
   // Convert simulation state to React Flow nodes/edges
   const { flowNodes, flowEdges } = useMemo(() => {
     const nodes: Node[] = simulationNodes.map((node) => {
@@ -381,6 +447,8 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
       return {
         id: node.id,
         type: 'circle',
+        width: radius * 2,
+        height: radius * 2,
         position: {
           x: (node.x ?? dimensions.width / 2) - radius,
           y: (node.y ?? dimensions.height / 2) - radius,
@@ -395,24 +463,13 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
       };
     });
 
-    // Lookup edge type by either endpoint ordering (connections and insight
-    // edges are directional, hierarchical edges are parent→child)
-    const edgeTypeByPair = new Map<string, GraphEdge['type']>();
-    currentGraph.edges.forEach((e) => {
-      edgeTypeByPair.set(`${e.source}|${e.target}`, e.type);
-      edgeTypeByPair.set(`${e.target}|${e.source}`, e.type);
-    });
-
     const edges: Edge[] = simulationEdges.map((edge) => {
-      const sourceNode = edge.source as SimulationNode;
-      const targetNode = edge.target as SimulationNode;
-      const sourceId = sourceNode?.id ?? 'unknown';
-      const targetId = targetNode?.id ?? 'unknown';
-
-      const edgeType = edgeTypeByPair.get(`${sourceId}|${targetId}`) || 'hierarchical';
+      const sourceId = typeof edge.source === 'object' ? edge.source.id : String(edge.source);
+      const targetId = typeof edge.target === 'object' ? edge.target.id : String(edge.target);
+      const edgeType = edge.type;
 
       return {
-        id: `edge-${sourceId}-${targetId}`,
+        id: edge.id,
         source: sourceId,
         target: targetId,
         type: 'smoothstep',
@@ -438,46 +495,76 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
     return { flowNodes: nodes, flowEdges: edges };
   }, [simulationNodes, simulationEdges, dimensions, showTitles, currentGraph.edges]);
 
-  // Handle node click (expand or select)
+  const flowNodeIds = flowNodes.map((node) => node.id).join('|');
+
+  useEffect(() => {
+    if (!flowNodeIds) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      updateNodeInternals(flowNodeIds.split('|'));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [flowNodeIds, updateNodeInternals]);
+
+  useEffect(() => {
+    if (!simulationSettled || flowNodes.length === 0 || hasInitialFitRef.current) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      void fitView({ padding: 0.2, duration: 300 });
+      hasInitialFitRef.current = true;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [fitView, flowNodes.length, simulationSettled]);
+
+  const expandTopic = useCallback((nodeId: string) => {
+    if (!nodeId.startsWith('topic-') || showSubtopicsRef.current) return;
+    setExpandedTopics((prev) => {
+      if (prev.has(nodeId)) return prev;
+      const next = new Set(prev);
+      next.add(nodeId);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => () => {
+    if (pendingClickRef.current) {
+      window.clearTimeout(pendingClickRef.current.timeout);
+    }
+  }, []);
+
+  // Delay single-click expansion so a double-click can cancel it.
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
-    const now = Date.now();
-    const lastClick = lastClickRef.current;
-    const nodeId = node.id;
+    const pendingClick = pendingClickRef.current;
+    if (pendingClick?.id === node.id) {
+      window.clearTimeout(pendingClick.timeout);
+      pendingClickRef.current = null;
 
-    if (lastClick && lastClick.id === nodeId && now - lastClick.time < DOUBLE_CLICK_DELAY) {
-      // Double-click detected
-      lastClickRef.current = null;
-
-      // Find the graph node data
-      const graphNode = currentGraph.nodes.find((n) => n.id === nodeId);
+      const graphNode = currentGraph.nodes.find((item) => item.id === node.id);
       if (graphNode) {
         setDetailNode(graphNode);
-        restartSimulation(0.3); // Light reheat
+        restartSimulation(0.3);
       }
-    } else {
-      // Single click
-      lastClickRef.current = { id: nodeId, time: now };
-
-      // Toggle subtopics for a topic when the global "Sub" toggle is off
-      if (nodeId.startsWith('topic-') && !showSubtopics) {
-        setExpandedTopics((prev) => {
-          const next = new Set(prev);
-          if (next.has(nodeId)) {
-            next.delete(nodeId);
-          } else {
-            next.add(nodeId);
-          }
-          return next;
-        });
-      }
+      return;
     }
-  }, [showSubtopics, currentGraph.nodes, restartSimulation]);
+
+    if (pendingClick) {
+      window.clearTimeout(pendingClick.timeout);
+      expandTopic(pendingClick.id);
+    }
+
+    const timeout = window.setTimeout(() => {
+      pendingClickRef.current = null;
+      expandTopic(node.id);
+    }, DOUBLE_CLICK_DELAY);
+    pendingClickRef.current = { id: node.id, timeout };
+  }, [currentGraph.nodes, expandTopic, restartSimulation]);
 
   // Toggle subtopics
   const handleToggleSubtopics = useCallback(() => {
-    setShowSubtopics((prev) => !prev);
+    if (showSubtopics) setExpandedTopics(new Set());
+    setShowSubtopics(!showSubtopics);
     restartSimulation(1);
-  }, [restartSimulation]);
+  }, [restartSimulation, showSubtopics]);
 
   // Toggle titles
   const handleToggleTitles = useCallback(() => {
@@ -495,9 +582,6 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
         nodes={flowNodes}
         edges={flowEdges}
         nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        proOptions={{ hideAttribution: true }}
         onNodeClick={handleNodeClick}
         className="dashboard-flow__graph"
       >
@@ -508,8 +592,8 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
           nodeColor={(node) => {
             const nodeType = node.data?.nodeType;
             if (nodeType === 'topic') return 'var(--accent)';
-            if (nodeType === 'insight') return 'var(--magenta)';
-            return 'var(--border)';
+            if (nodeType === 'customInsight') return 'var(--magenta)';
+            return 'var(--muted)';
           }}
         />
 
