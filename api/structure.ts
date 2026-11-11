@@ -120,15 +120,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { documents } = req.body
+    const body = req.body ?? {}
+    const { documents, mode, structures } = body
 
-    if (!documents || !Array.isArray(documents) || documents.length === 0) {
+    const isMergeRequest = mode === 'merge'
+    if (isMergeRequest && (!Array.isArray(structures) || structures.length < 2)) {
+      return res.status(400).json({ error: 'Merge mode requires at least two structures' })
+    }
+    if (!isMergeRequest && (!Array.isArray(documents) || documents.length === 0)) {
       return res.status(400).json({ error: 'documents array is required and must be non-empty' })
+    }
+
+    if (isMergeRequest) {
+      const invalidStructure = structures.some((structure: unknown) =>
+        !structure
+        || typeof structure !== 'object'
+        || !Array.isArray((structure as { topics?: unknown }).topics)
+        || !Array.isArray((structure as { connections?: unknown }).connections)
+      )
+      if (invalidStructure) {
+        return res.status(400).json({ error: 'Each merged structure must contain topics and connections arrays' })
+      }
     }
 
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY
     if (!GEMINI_API_KEY) {
       return res.status(500).json({ error: 'GEMINI_API_KEY not configured' })
+    }
+
+    if (isMergeRequest) {
+      const userContent = JSON.stringify({
+        partialStructures: structures,
+        instruction: `Merge the provided partial knowledge graphs into one unified structure following this schema:\n${TARGET_SCHEMA}`,
+      })
+      const raw = await callGemini(GEMINI_API_KEY, CONSOLIDATION_PROMPT, userContent)
+      const parsed = parseJsonSafe(raw)
+      parsed.createdAt = new Date().toISOString()
+      return res.status(200).json(parsed)
     }
 
     // Estimate total token count across all documents

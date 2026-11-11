@@ -121,3 +121,13 @@ Connected the Miso chat panel to `/api/chat` and the existing local chunking, em
 **Why:** The static layout did not provide the requested force-directed, interactive graph. Fixes to simulation lifecycle, node-ID resolution, collapsed-edge handling, resizing, and React Flow node-internals updates were needed for reliable rendering and editing. The additional views and shared controls make the same structure useful for exploration, editing, and reading. Client-side retrieval grounds chat in source material without exposing provider credentials; exporting chunks preserves that capability after restoring a session.
 
 **Affects:** `src/App.tsx` (local chunk and embedding pipeline), `src/components/PhysicsGraph.tsx` (d3-force layout, graph nodes/edges, tooltips, editing, and interactions), `src/components/TreeView.tsx` (mind-map layouts, branches, edge tooltips, resizing, and per-layout positions), `src/components/DocView.tsx` (book-like reader), `src/components/ChatPanel.tsx` (RAG chat, citations, ASCII art, and insights), `src/components/Dashboard.tsx` (working copy, edit controls, exports, view selection, shared controls, theme selector, and sidebar), `src/components/NodeEditor.tsx` (working-copy node editor), `src/components/Uploader.tsx` (legacy and chunk-aware imports), `src/components/Loading.tsx` (live processing status), `src/lib/graphIds.ts` (stable render IDs), `src/types/schema.ts` (working-copy, chunk, and export types), `src/styles/dashboard.css` (graph, tree, reader, chat, editing glow, and sidebar styling), `tests/magnetism-output-insights.json` (custom-insight fixture), `package.json` / `package-lock.json` (`@types/d3-force`)
+
+---
+
+### 2026-11-12 — AI-backed multi-session restore
+
+**What:** Multiple imported sessions use `POST /api/structure` with `mode: "merge"` and a `structures` array. The server validates the merge payload, consolidates the graphs with the existing Gemini consolidation prompt, and assigns a server timestamp. The client preserves custom insights from the imported sessions and combines their source chunks, prefixing chunk IDs by source session to avoid collisions. Single-session restore remains local and does not call the AI.
+
+**Why:** The Restore UI already supports selecting multiple sessions, but that path must have an explicit server contract; treating it as a new-document structuring request would reject the payload. Custom insights are user-authored material, so they are retained by the client rather than delegated to model output.
+
+**Affects:** `api/structure.ts` (merge request validation and consolidation), `src/App.tsx` (merge request, insight and chunk preservation), `src/components/Uploader.tsx` (multi-session restore)
