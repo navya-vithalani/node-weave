@@ -13,8 +13,6 @@ import {
   Handle,
   Position,
   BackgroundVariant,
-  MarkerType,
-  Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { OriginalStructure } from '../types/schema';
@@ -28,6 +26,9 @@ const NODE_RADIUS = {
   customInsight: 16,
 } as const;
 
+const HANDLE_POINT_COUNT = 24;
+const SUBTOPIC_LINK_DISTANCE = 110;
+
 // Force configuration
 const FORCE_CONFIG = {
   linkStrength: 0.3,
@@ -39,9 +40,18 @@ const FORCE_CONFIG = {
 
 interface PhysicsGraphProps {
   structure: OriginalStructure;
+  onNodeDetail: (node: GraphNode) => void;
+  showSubtopics: boolean;
+  showConnections: boolean;
+  fitRequest: number;
+  focusNodeId: string | null;
+  dimUnrelated: boolean;
+  physicsPaused: boolean;
+  reheatRequest: number;
+  nodeScale: number;
 }
 
-interface GraphNode {
+export interface GraphNode {
   id: string;
   type: 'topic' | 'subtopic' | 'customInsight';
   name: string;
@@ -56,54 +66,52 @@ interface GraphEdge {
   source: string;
   target: string;
   type: 'hierarchical' | 'connection' | 'insight';
-}
-
-interface DetailPanelProps {
-  node: GraphNode | null;
-  onClose: () => void;
-}
-
-// eslint-disable-next-line react/function-component-definition
-function DetailPanel({ node, onClose }: DetailPanelProps) {
-  if (!node) return null;
-
-  return (
-    <div className="detail-panel">
-      <div className="detail-panel__header">
-        <span className="detail-panel__type">{node.type}</span>
-        <button className="detail-panel__close" onClick={onClose}>×</button>
-      </div>
-      <h3 className="detail-panel__name">{node.name}</h3>
-      {node.summary && (
-        <p className="detail-panel__summary">{node.summary}</p>
-      )}
-      {node.points && node.points.length > 0 && (
-        <ul className="detail-panel__points">
-          {node.points.map((point) => <li key={point}>{point}</li>)}
-        </ul>
-      )}
-    </div>
-  );
+  link: string;
 }
 
 // Get radius for a node type
-function getNodeRadius(type: string): number {
+function getNodeRadius(type: string, scale = 1): number {
   const radius = (NODE_RADIUS as Record<string, number>)[type];
-  return radius ?? 16;
+  return (radius ?? 16) * scale;
+}
+
+function getConnectionHandles(
+  source: SimulationNode | undefined,
+  target: SimulationNode | undefined,
+  fallback: { x: number; y: number }
+): { sourceHandle: string; targetHandle: string } {
+  const deltaX = (target?.x ?? fallback.x) - (source?.x ?? fallback.x);
+  const deltaY = (target?.y ?? fallback.y) - (source?.y ?? fallback.y);
+  const angle = Math.atan2(deltaY, deltaX);
+  const sourceIndex = Math.round(
+    ((angle + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2) * HANDLE_POINT_COUNT
+  ) % HANDLE_POINT_COUNT;
+  const targetIndex = (sourceIndex + HANDLE_POINT_COUNT / 2) % HANDLE_POINT_COUNT;
+
+  return {
+    sourceHandle: `source-${sourceIndex}`,
+    targetHandle: `target-${targetIndex}`,
+  };
 }
 
 // Circle Node Component
 function CircleNode({ data, selected, id }: NodeProps<Node>) {
   const nodeType = (data.nodeType as string) || 'topic';
-  const radius = getNodeRadius(nodeType);
-  const showTitle = data.showTitle as boolean;
+  const radius = getNodeRadius(nodeType, Number(data.nodeScale ?? 1));
 
-  // Get color based on node type
-  const getColor = () => {
+  const getStrokeColor = () => {
     switch (nodeType) {
       case 'topic': return 'var(--accent)';
-      case 'subtopic': return 'var(--muted)';
+      case 'subtopic': return 'color-mix(in srgb, var(--accent) 58%, var(--bg))';
       case 'customInsight': return 'var(--magenta)';
+      default: return 'var(--accent)';
+    }
+  };
+  const getFillColor = () => {
+    switch (nodeType) {
+      case 'topic': return 'var(--accent)';
+      case 'subtopic': return 'color-mix(in srgb, var(--accent) 58%, var(--bg))';
+      case 'customInsight': return 'color-mix(in srgb, var(--magenta) 72%, var(--panel))';
       default: return 'var(--accent)';
     }
   };
@@ -114,7 +122,7 @@ function CircleNode({ data, selected, id }: NodeProps<Node>) {
       style={{
         width: radius * 2,
         height: radius * 2,
-        borderColor: getColor(),
+        borderColor: getStrokeColor(),
       }}
       data-node-id={id}
     >
@@ -123,26 +131,52 @@ function CircleNode({ data, selected, id }: NodeProps<Node>) {
           cx={radius}
           cy={radius}
           r={radius - 2}
-          fill="var(--panel)"
-          stroke={getColor()}
+          fill={getFillColor()}
+          stroke={getStrokeColor()}
           strokeWidth={nodeType === 'topic' ? 2 : 1.5}
         />
       </svg>
-      <Handle
-        type="target"
-        position={Position.Top}
-        isConnectable={false}
-        style={{ width: 1, height: 1, opacity: 0, border: 0 }}
-      />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        isConnectable={false}
-        style={{ width: 1, height: 1, opacity: 0, border: 0 }}
-      />
-      {showTitle && (
-        <div className="circle-node__label">{String(data.label ?? '')}</div>
-      )}
+      {Array.from({ length: HANDLE_POINT_COUNT }, (_, index) => {
+        const angle = (index / HANDLE_POINT_COUNT) * Math.PI * 2;
+        const position = Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))
+          ? (Math.cos(angle) >= 0 ? Position.Right : Position.Left)
+          : (Math.sin(angle) >= 0 ? Position.Bottom : Position.Top);
+        const radialOffset = ((radius - 2) / (radius * 2)) * 100;
+        const handleStyle = {
+          left: `${50 + Math.cos(angle) * radialOffset}%`,
+          top: `${50 + Math.sin(angle) * radialOffset}%`,
+          right: 'auto',
+          bottom: 'auto',
+          transform: 'translate(-50%, -50%)',
+          width: 2,
+          height: 2,
+          opacity: 0,
+          border: 0,
+        };
+
+        return [
+          <Handle
+            key={`source-${index}`}
+            id={`source-${index}`}
+            type="source"
+            position={position}
+            isConnectable={false}
+            style={handleStyle}
+          />,
+          <Handle
+            key={`target-${index}`}
+            id={`target-${index}`}
+            type="target"
+            position={position}
+            isConnectable={false}
+            style={handleStyle}
+          />,
+        ];
+      })}
+      <div className="circle-node__tooltip" role="tooltip">
+        <strong>{String(data.label ?? '')}</strong>
+        {Boolean(data.summary) && <span>{String(data.summary)}</span>}
+      </div>
     </div>
   );
 }
@@ -164,13 +198,16 @@ interface SimulationNode extends d3Force.SimulationNodeDatum {
 interface SimulationLink extends d3Force.SimulationLinkDatum<SimulationNode> {
   id: string;
   type: GraphEdge['type'];
+  link: string;
 }
 
 function useForceSimulation(
   nodes: GraphNode[],
   edges: GraphEdge[],
   width: number,
-  height: number
+  height: number,
+  nodeScale: number,
+  physicsPaused: boolean
 ) {
   const [simulationNodes, setSimulationNodes] = useState<SimulationNode[]>([]);
   const [simulationEdges, setSimulationEdges] = useState<SimulationLink[]>([]);
@@ -216,12 +253,13 @@ function useForceSimulation(
       .alphaDecay(FORCE_CONFIG.alphaDecay)
       .force('link', d3Force.forceLink<SimulationNode, SimulationLink>()
         .id((d) => d.id)
-        .strength(FORCE_CONFIG.linkStrength))
-      .force('charge', d3Force.forceManyBody()
-        .strength(FORCE_CONFIG.manyBodyStrength))
+        .distance((link) => link.type === 'hierarchical' ? SUBTOPIC_LINK_DISTANCE : 130)
+        .strength((link) => link.type === 'hierarchical' ? 1 : FORCE_CONFIG.linkStrength))
+      .force('charge', d3Force.forceManyBody<SimulationNode>()
+        .strength((node) => node.nodeType === 'subtopic' ? -35 : FORCE_CONFIG.manyBodyStrength))
       .force('collide', d3Force.forceCollide<SimulationNode>()
         .radius((d) => {
-          const r = getNodeRadius(d.nodeType);
+          const r = getNodeRadius(d.nodeType, nodeScale);
           return r + FORCE_CONFIG.collidePadding;
         }))
       .force('center', d3Force.forceCenter(width / 2, height / 2)
@@ -241,6 +279,7 @@ function useForceSimulation(
       setSimulationNodes([...currentNodes]);
     });
     simulation.on('end', () => setSimulationSettled(true));
+    if (physicsPaused) simulation.stop();
 
     simulationRef.current = simulation;
     setSimulationNodes([...initializedNodes]);
@@ -250,7 +289,14 @@ function useForceSimulation(
       simulation.stop();
       simulationRef.current = null;
     };
-  }, [nodes, edges, width, height]);
+  }, [nodes, edges, width, height, nodeScale]);
+
+  useEffect(() => {
+    const simulation = simulationRef.current;
+    if (!simulation) return;
+    if (physicsPaused) simulation.stop();
+    else simulation.alpha(Math.max(simulation.alpha(), 0.3)).restart();
+  }, [physicsPaused]);
 
   // Expose simulation for manual restarts
   const restartSimulation = useCallback((alpha = 1) => {
@@ -262,16 +308,26 @@ function useForceSimulation(
   return { simulationNodes, simulationEdges, simulationSettled, restartSimulation };
 }
 
-function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
+function PhysicsGraphContent({
+  structure,
+  onNodeDetail,
+  showSubtopics,
+  showConnections,
+  fitRequest,
+  focusNodeId,
+  dimUnrelated,
+  physicsPaused,
+  reheatRequest,
+  nodeScale,
+}: PhysicsGraphProps) {
   const { fitView } = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
   const containerRef = useRef<HTMLDivElement>(null);
   const hasInitialFitRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-  const [showSubtopics, setShowSubtopics] = useState(true);
-  const [showTitles, setShowTitles] = useState(false);
+  const [edgeTooltip, setEdgeTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
-  const [detailNode, setDetailNode] = useState<GraphNode | null>(null);
+  const [collapsedTopics, setCollapsedTopics] = useState<Set<string>>(new Set());
   const pendingClickRef = useRef<{ id: string; timeout: number } | null>(null);
   const showSubtopicsRef = useRef(showSubtopics);
   showSubtopicsRef.current = showSubtopics;
@@ -310,6 +366,7 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
             source: `insight-${topicIndex}-${insight.id}`,
             target: `topic-${topicIndex}`,
             type: 'insight',
+            link: 'custom insight for this topic',
           });
         });
       }
@@ -341,9 +398,10 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
     // Determine which topics should show subtopics
     const topicsWithSubtopics = new Set<string>();
     if (showSubtopics) {
-      // Toggle ON: show subtopics for ALL topics
+      // The global toggle shows all topic children unless an individual topic is collapsed.
       structure.topics.forEach((_, topicIndex) => {
-        topicsWithSubtopics.add(`topic-${topicIndex}`);
+        const topicId = `topic-${topicIndex}`;
+        if (!collapsedTopics.has(topicId)) topicsWithSubtopics.add(topicId);
       });
     } else {
       // Toggle OFF: show subtopics only for individually expanded topics
@@ -374,13 +432,14 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
           source: topicId,
           target: subId,
           type: 'hierarchical',
+          link: 'is a subtopic of',
         });
       });
     });
 
     // Add cross-topic connection edges (resolving subtopic data IDs → node IDs)
     const collapsedConnectionPairs = new Set<string>();
-    structure.connections.forEach((conn, i) => {
+    if (showConnections) structure.connections.forEach((conn, i) => {
       const resolveNodeId = (id: string): string | null => {
         const topicNodeId = topicIdMap.get(id);
         if (topicNodeId) return topicNodeId;
@@ -411,39 +470,44 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
           source: sourceId,
           target: targetId,
           type: 'connection',
+          link: conn.link,
         });
       }
     });
 
     return { nodes, edges };
-  }, [baseGraph, subtopicIdMap, topicIdMap, showSubtopics, expandedTopics, structure]);
+  }, [baseGraph, subtopicIdMap, topicIdMap, showSubtopics, expandedTopics, collapsedTopics, showConnections, structure]);
 
   // Initialize force simulation
-  const { simulationNodes, simulationEdges, simulationSettled, restartSimulation } = useForceSimulation(
+  const { simulationNodes, simulationEdges, simulationSettled, restartSimulation: restartForceSimulation } = useForceSimulation(
     currentGraph.nodes,
     currentGraph.edges,
     dimensions.width,
-    dimensions.height
+    dimensions.height,
+    nodeScale,
+    physicsPaused
   );
 
   // Update dimensions on resize
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
     const updateDimensions = () => {
-      if (containerRef.current) {
-        const { width, height } = containerRef.current.getBoundingClientRect();
-        setDimensions({ width, height });
-      }
+      const { width, height } = container.getBoundingClientRect();
+      setDimensions({ width, height });
     };
 
     updateDimensions();
-    window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    const observer = new ResizeObserver(updateDimensions);
+    observer.observe(container);
+    return () => observer.disconnect();
   }, []);
 
   // Convert simulation state to React Flow nodes/edges
   const { flowNodes, flowEdges } = useMemo(() => {
+    const simulationNodeById = new Map(simulationNodes.map((node) => [node.id, node]));
     const nodes: Node[] = simulationNodes.map((node) => {
-      const radius = getNodeRadius(node.nodeType);
+      const radius = getNodeRadius(node.nodeType, nodeScale);
       return {
         id: node.id,
         type: 'circle',
@@ -457,8 +521,8 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
           nodeType: node.nodeType,
           label: node.name,
           summary: node.summary,
-          showTitle: showTitles,
           modified: node.modified,
+          nodeScale,
         },
       };
     });
@@ -467,33 +531,68 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
       const sourceId = typeof edge.source === 'object' ? edge.source.id : String(edge.source);
       const targetId = typeof edge.target === 'object' ? edge.target.id : String(edge.target);
       const edgeType = edge.type;
+      const { sourceHandle, targetHandle } = getConnectionHandles(
+        simulationNodeById.get(sourceId),
+        simulationNodeById.get(targetId),
+        { x: dimensions.width / 2, y: dimensions.height / 2 }
+      );
+      const isConnectedToFocus = !focusNodeId
+        || sourceId === focusNodeId
+        || targetId === focusNodeId;
 
       return {
         id: edge.id,
         source: sourceId,
         target: targetId,
-        type: 'smoothstep',
+        sourceHandle,
+        targetHandle,
+        type: edgeType === 'hierarchical' ? 'straight' : 'default',
         animated: edgeType !== 'hierarchical',
+        data: { link: edge.link },
         style: {
           stroke: edgeType === 'insight' ? 'var(--magenta)' :
                   edgeType === 'connection' ? 'var(--accent)' :
-                  'var(--border-soft)',
-          strokeWidth: edgeType === 'hierarchical' ? 1 : 1.5,
+                  'var(--accent)',
+          strokeWidth: edgeType === 'hierarchical' ? 2 : 1.5,
+          opacity: !dimUnrelated || isConnectedToFocus
+            ? edgeType === 'hierarchical' ? 0.78 : 0.9
+            : 0.12,
           strokeDasharray: edgeType === 'insight' ? '4 3' :
                            edgeType === 'connection' ? '8 4' :
                            undefined,
-        },
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-          color: edgeType === 'insight' ? 'var(--magenta)' :
-                 edgeType === 'connection' ? 'var(--accent)' :
-                 'var(--border-soft)',
         },
       };
     });
 
     return { flowNodes: nodes, flowEdges: edges };
-  }, [simulationNodes, simulationEdges, dimensions, showTitles, currentGraph.edges]);
+  }, [simulationNodes, simulationEdges, dimensions, nodeScale, focusNodeId, dimUnrelated]);
+
+  const focusedNodeIds = useMemo(() => {
+    if (!focusNodeId) return null;
+    const connected = new Set([focusNodeId]);
+    simulationEdges.forEach((edge) => {
+      const sourceId = typeof edge.source === 'object' ? edge.source.id : String(edge.source);
+      const targetId = typeof edge.target === 'object' ? edge.target.id : String(edge.target);
+      if (sourceId === focusNodeId) connected.add(targetId);
+      if (targetId === focusNodeId) connected.add(sourceId);
+    });
+    return connected;
+  }, [focusNodeId, simulationEdges]);
+
+  const visibleFlowNodes = useMemo(() => {
+    if (!dimUnrelated || !focusedNodeIds) return flowNodes;
+    return flowNodes.map((node) => ({
+      ...node,
+      style: {
+        ...node.style,
+        opacity: focusedNodeIds.has(node.id) ? 1 : 0.18,
+      },
+    }));
+  }, [dimUnrelated, flowNodes, focusedNodeIds]);
+
+  const restartSimulation = useCallback((alpha = 1) => {
+    if (!physicsPaused) restartForceSimulation(alpha);
+  }, [physicsPaused, restartForceSimulation]);
 
   const flowNodeIds = flowNodes.map((node) => node.id).join('|');
 
@@ -504,7 +603,7 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
       updateNodeInternals(flowNodeIds.split('|'));
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [flowNodeIds, updateNodeInternals]);
+  }, [flowNodeIds, nodeScale, updateNodeInternals]);
 
   useEffect(() => {
     if (!simulationSettled || flowNodes.length === 0 || hasInitialFitRef.current) return;
@@ -516,12 +615,49 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
     return () => window.cancelAnimationFrame(frame);
   }, [fitView, flowNodes.length, simulationSettled]);
 
-  const expandTopic = useCallback((nodeId: string) => {
-    if (!nodeId.startsWith('topic-') || showSubtopicsRef.current) return;
+  useEffect(() => {
+    if (fitRequest > 0) void fitView({ padding: 0.2, duration: 300 });
+  }, [fitRequest, fitView]);
+
+  useEffect(() => {
+    if (focusNodeId && flowNodeIds.split('|').includes(focusNodeId)) {
+      void fitView({ nodes: [{ id: focusNodeId }], padding: 0.6, duration: 450 });
+    }
+  }, [fitView, focusNodeId, flowNodeIds]);
+
+  useEffect(() => {
+    const match = focusNodeId?.match(/^subtopic-(\d+)-/);
+    if (!match) return;
+    const topicId = `topic-${match[1]}`;
+    setCollapsedTopics((previous) => {
+      if (!previous.has(topicId)) return previous;
+      const next = new Set(previous);
+      next.delete(topicId);
+      return next;
+    });
+    setExpandedTopics((previous) => new Set(previous).add(topicId));
+  }, [focusNodeId]);
+
+  useEffect(() => {
+    if (reheatRequest > 0) restartSimulation(1);
+  }, [reheatRequest, restartSimulation]);
+
+  const toggleTopicSubtopics = useCallback((nodeId: string) => {
+    if (!nodeId.startsWith('topic-')) return;
+    if (showSubtopicsRef.current) {
+      setCollapsedTopics((prev) => {
+        const next = new Set(prev);
+        if (next.has(nodeId)) next.delete(nodeId);
+        else next.add(nodeId);
+        return next;
+      });
+      return;
+    }
+
     setExpandedTopics((prev) => {
-      if (prev.has(nodeId)) return prev;
       const next = new Set(prev);
-      next.add(nodeId);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
       return next;
     });
   }, []);
@@ -541,7 +677,7 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
 
       const graphNode = currentGraph.nodes.find((item) => item.id === node.id);
       if (graphNode) {
-        setDetailNode(graphNode);
+        onNodeDetail(graphNode);
         restartSimulation(0.3);
       }
       return;
@@ -549,40 +685,46 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
 
     if (pendingClick) {
       window.clearTimeout(pendingClick.timeout);
-      expandTopic(pendingClick.id);
+      toggleTopicSubtopics(pendingClick.id);
     }
 
     const timeout = window.setTimeout(() => {
       pendingClickRef.current = null;
-      expandTopic(node.id);
+      toggleTopicSubtopics(node.id);
     }, DOUBLE_CLICK_DELAY);
     pendingClickRef.current = { id: node.id, timeout };
-  }, [currentGraph.nodes, expandTopic, restartSimulation]);
+  }, [currentGraph.nodes, onNodeDetail, restartSimulation, toggleTopicSubtopics]);
 
-  // Toggle subtopics
-  const handleToggleSubtopics = useCallback(() => {
-    if (showSubtopics) setExpandedTopics(new Set());
-    setShowSubtopics(!showSubtopics);
-    restartSimulation(1);
-  }, [restartSimulation, showSubtopics]);
+  const handleEdgeMouseEnter = useCallback((event: React.MouseEvent, edge: Edge) => {
+    const bounds = containerRef.current?.getBoundingClientRect();
+    const text = edge.data?.link;
+    if (!bounds || typeof text !== 'string' || !text) return;
 
-  // Toggle titles
-  const handleToggleTitles = useCallback(() => {
-    setShowTitles((prev) => !prev);
-  }, []);
-
-  // Close detail panel
-  const handleCloseDetail = useCallback(() => {
-    setDetailNode(null);
+    setEdgeTooltip({
+      text,
+      x: Math.min(event.clientX - bounds.left + 12, bounds.width - 280),
+      y: Math.min(event.clientY - bounds.top + 12, bounds.height - 70),
+    });
   }, []);
 
   return (
     <div className="dashboard-flow" ref={containerRef}>
+      {edgeTooltip && (
+        <div
+          className="graph-edge-tooltip"
+          style={{ left: Math.max(8, edgeTooltip.x), top: Math.max(8, edgeTooltip.y) }}
+          role="tooltip"
+        >
+          {edgeTooltip.text}
+        </div>
+      )}
       <ReactFlow
-        nodes={flowNodes}
+        nodes={visibleFlowNodes}
         edges={flowEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
+        onEdgeMouseEnter={handleEdgeMouseEnter}
+        onEdgeMouseLeave={() => setEdgeTooltip(null)}
         className="dashboard-flow__graph"
       >
         <Background color="var(--border-soft)" variant={BackgroundVariant.Dots} gap={40} size={1} />
@@ -597,34 +739,6 @@ function PhysicsGraphContent({ structure }: PhysicsGraphProps) {
           }}
         />
 
-        {/* Floating controls */}
-        <Panel position="bottom-left">
-          <div className="dashboard-flow__controls-floating">
-            <label className="dashboard__subtopic-toggle">
-              <input
-                type="checkbox"
-                checked={showSubtopics}
-                onChange={handleToggleSubtopics}
-              />
-              <span>Sub</span>
-            </label>
-            <label className="dashboard__titles-toggle">
-              <input
-                type="checkbox"
-                checked={showTitles}
-                onChange={handleToggleTitles}
-              />
-              <span>Titles</span>
-            </label>
-          </div>
-        </Panel>
-
-        {/* Detail panel */}
-        {detailNode && (
-          <Panel position="top-right">
-            <DetailPanel node={detailNode} onClose={handleCloseDetail} />
-          </Panel>
-        )}
       </ReactFlow>
     </div>
   );
