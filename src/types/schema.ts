@@ -33,6 +33,7 @@ export interface CustomInsight {
   summary: string
   anchorTopicId: string
   createdAt: string
+  modified?: boolean
 }
 
 // §3.1 — AI-authored, immutable original structure
@@ -41,6 +42,7 @@ export interface OriginalStructure {
   createdAt: string
   topics: Topic[]
   connections: Connection[]
+  customInsights?: CustomInsight[]
 }
 
 // §3.2 — Edited/working copy (copy-on-write, mutable)

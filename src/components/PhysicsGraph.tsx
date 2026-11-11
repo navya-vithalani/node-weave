@@ -16,6 +16,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { OriginalStructure } from '../types/schema';
+import { getTopicInsights, graphNodeId } from '../lib/graphIds';
 import '../styles/dashboard.css';
 import * as d3Force from 'd3-force';
 
@@ -49,10 +50,14 @@ interface PhysicsGraphProps {
   physicsPaused: boolean;
   reheatRequest: number;
   nodeScale: number;
+  editMode: boolean;
+  onNodeSelect: (node: GraphNode) => void;
+  onConnectionSelect: (connectionId: string) => void;
 }
 
 export interface GraphNode {
   id: string;
+  schemaId?: string;
   type: 'topic' | 'subtopic' | 'customInsight';
   name: string;
   summary: string;
@@ -67,6 +72,7 @@ interface GraphEdge {
   target: string;
   type: 'hierarchical' | 'connection' | 'insight';
   link: string;
+  connectionId?: string;
 }
 
 // Get radius for a node type
@@ -199,6 +205,7 @@ interface SimulationLink extends d3Force.SimulationLinkDatum<SimulationNode> {
   id: string;
   type: GraphEdge['type'];
   link: string;
+  connectionId?: string;
 }
 
 function useForceSimulation(
@@ -305,12 +312,30 @@ function useForceSimulation(
     }
   }, []);
 
-  return { simulationNodes, simulationEdges, simulationSettled, restartSimulation };
+  const moveNode = useCallback((id: string, x: number, y: number, fixed: boolean) => {
+    const simulation = simulationRef.current;
+    const node = simulation?.nodes().find((item) => item.id === id);
+    if (!simulation || !node) return;
+    node.x = x;
+    node.y = y;
+    node.vx = 0;
+    node.vy = 0;
+    node.fx = fixed ? x : null;
+    node.fy = fixed ? y : null;
+    positionsRef.current.set(id, { x, y, vx: 0, vy: 0 });
+    setSimulationNodes([...simulation.nodes()]);
+    if (!physicsPaused) simulation.alpha(fixed ? 0.1 : 0.35).restart();
+  }, [physicsPaused]);
+
+  return { simulationNodes, simulationEdges, simulationSettled, restartSimulation, moveNode };
 }
 
 function PhysicsGraphContent({
   structure,
   onNodeDetail,
+  editMode,
+  onNodeSelect,
+  onConnectionSelect,
   showSubtopics,
   showConnections,
   fitRequest,
@@ -339,9 +364,11 @@ function PhysicsGraphContent({
     const edges: GraphEdge[] = [];
 
     // Add topic nodes
-    structure.topics.forEach((topic, topicIndex) => {
+    structure.topics.forEach((topic) => {
+      const id = graphNodeId('topic', topic.id);
       nodes.push({
-        id: `topic-${topicIndex}`,
+        id,
+        schemaId: topic.id,
         type: 'topic',
         name: topic.name,
         summary: topic.summary,
@@ -350,26 +377,27 @@ function PhysicsGraphContent({
     });
 
     // Add insight nodes
-    structure.topics.forEach((topic, topicIndex) => {
-      if (topic.customInsights) {
-        topic.customInsights.forEach((insight) => {
-          nodes.push({
-            id: `insight-${topicIndex}-${insight.id}`,
-            type: 'customInsight',
-            name: insight.name,
-            summary: insight.summary,
-            parentTopicId: `topic-${topicIndex}`,
-            modified: true,
-          });
-          edges.push({
-            id: `edge-insight-${topicIndex}-${insight.id}`,
-            source: `insight-${topicIndex}-${insight.id}`,
-            target: `topic-${topicIndex}`,
-            type: 'insight',
-            link: 'custom insight for this topic',
-          });
+    structure.topics.forEach((topic) => {
+      getTopicInsights(structure, topic).forEach((insight) => {
+        const insightId = graphNodeId('customInsight', insight.id);
+        const topicId = graphNodeId('topic', topic.id);
+        nodes.push({
+          id: insightId,
+          schemaId: insight.id,
+          type: 'customInsight',
+          name: insight.name,
+          summary: insight.summary,
+          parentTopicId: topicId,
+          modified: insight.modified ?? true,
         });
-      }
+        edges.push({
+          id: `edge-insight-${insight.id}`,
+          source: insightId,
+          target: topicId,
+          type: 'insight',
+          link: 'custom insight for this topic',
+        });
+      });
     });
 
     return { nodes, edges };
@@ -377,17 +405,21 @@ function PhysicsGraphContent({
 
   // Build subtopic data-ID → position map (used for connection edge resolution)
   const subtopicIdMap = useMemo(() => {
-    const map = new Map<string, { topicIndex: number; subIndex: number }>();
+    const map = new Map<string, { topicId: string; topicIndex: number; subIndex: number }>();
     structure.topics.forEach((topic, topicIndex) => {
       topic.subtopics.forEach((sub, subIndex) => {
-        map.set(sub.id, { topicIndex, subIndex });
+        map.set(sub.id, { topicId: graphNodeId('topic', topic.id), topicIndex, subIndex });
       });
     });
     return map;
   }, [structure]);
 
   const topicIdMap = useMemo(() => new Map(
-    structure.topics.map((topic, topicIndex) => [topic.id, `topic-${topicIndex}`])
+    structure.topics.map((topic) => [topic.id, graphNodeId('topic', topic.id)])
+  ), [structure]);
+  const insightIdMap = useMemo(() => new Map(
+    structure.topics.flatMap((topic) => getTopicInsights(structure, topic))
+      .map((insight) => [insight.id, graphNodeId('customInsight', insight.id)])
   ), [structure]);
 
   // Build current graph: topics + insights + subtopics + all edge types
@@ -399,8 +431,8 @@ function PhysicsGraphContent({
     const topicsWithSubtopics = new Set<string>();
     if (showSubtopics) {
       // The global toggle shows all topic children unless an individual topic is collapsed.
-      structure.topics.forEach((_, topicIndex) => {
-        const topicId = `topic-${topicIndex}`;
+      structure.topics.forEach((topic) => {
+        const topicId = graphNodeId('topic', topic.id);
         if (!collapsedTopics.has(topicId)) topicsWithSubtopics.add(topicId);
       });
     } else {
@@ -412,14 +444,14 @@ function PhysicsGraphContent({
 
     // Add subtopic nodes + hierarchical edges for visible topics
     topicsWithSubtopics.forEach((topicId) => {
-      const topicIndex = parseInt(topicId.replace('topic-', ''), 10);
-      const topic = structure.topics[topicIndex];
+      const topic = structure.topics.find((item) => graphNodeId('topic', item.id) === topicId);
       if (!topic) return;
 
-      topic.subtopics.forEach((sub, subIndex) => {
-        const subId = `subtopic-${topicIndex}-${subIndex}`;
+      topic.subtopics.forEach((sub) => {
+        const subId = graphNodeId('subtopic', sub.id);
         nodes.push({
           id: subId,
+          schemaId: sub.id,
           type: 'subtopic',
           name: sub.name,
           summary: sub.summary,
@@ -428,7 +460,7 @@ function PhysicsGraphContent({
           modified: sub.modified,
         });
         edges.push({
-          id: `edge-sub-${topicIndex}-${subIndex}`,
+          id: `edge-sub-${topic.id}-${sub.id}`,
           source: topicId,
           target: subId,
           type: 'hierarchical',
@@ -439,15 +471,18 @@ function PhysicsGraphContent({
 
     // Add cross-topic connection edges (resolving subtopic data IDs → node IDs)
     const collapsedConnectionPairs = new Set<string>();
+    const currentNodeTypes = new Map(nodes.map((node) => [node.id, node.type]));
     if (showConnections) structure.connections.forEach((conn, i) => {
       const resolveNodeId = (id: string): string | null => {
         const topicNodeId = topicIdMap.get(id);
         if (topicNodeId) return topicNodeId;
+        const insightNodeId = insightIdMap.get(id);
+        if (insightNodeId) return insightNodeId;
         const pos = subtopicIdMap.get(id);
         if (!pos) return null;
-        const topicId = `topic-${pos.topicIndex}`;
+        const topicId = pos.topicId;
         if (topicsWithSubtopics.has(topicId)) {
-          return `subtopic-${pos.topicIndex}-${pos.subIndex}`;
+          return graphNodeId('subtopic', structure.topics[pos.topicIndex].subtopics[pos.subIndex].id);
         }
         return topicId;
       };
@@ -456,9 +491,9 @@ function PhysicsGraphContent({
       const targetId = resolveNodeId(conn.target);
 
       if (sourceId && targetId && sourceId !== targetId) {
-        const sourceIsCollapsedTopic = sourceId.startsWith('topic-')
+        const sourceIsCollapsedTopic = currentNodeTypes.get(sourceId) === 'topic'
           && !topicsWithSubtopics.has(sourceId);
-        const targetIsCollapsedTopic = targetId.startsWith('topic-')
+        const targetIsCollapsedTopic = currentNodeTypes.get(targetId) === 'topic'
           && !topicsWithSubtopics.has(targetId);
         const pairKey = [sourceId, targetId].sort().join('|');
         if (!showSubtopics && sourceIsCollapsedTopic && targetIsCollapsedTopic) {
@@ -471,15 +506,16 @@ function PhysicsGraphContent({
           target: targetId,
           type: 'connection',
           link: conn.link,
+          connectionId: conn.id,
         });
       }
     });
 
     return { nodes, edges };
-  }, [baseGraph, subtopicIdMap, topicIdMap, showSubtopics, expandedTopics, collapsedTopics, showConnections, structure]);
+  }, [baseGraph, subtopicIdMap, topicIdMap, insightIdMap, showSubtopics, expandedTopics, collapsedTopics, showConnections, structure]);
 
   // Initialize force simulation
-  const { simulationNodes, simulationEdges, simulationSettled, restartSimulation: restartForceSimulation } = useForceSimulation(
+  const { simulationNodes, simulationEdges, simulationSettled, restartSimulation: restartForceSimulation, moveNode } = useForceSimulation(
     currentGraph.nodes,
     currentGraph.edges,
     dimensions.width,
@@ -548,7 +584,7 @@ function PhysicsGraphContent({
         targetHandle,
         type: edgeType === 'hierarchical' ? 'straight' : 'default',
         animated: edgeType !== 'hierarchical',
-        data: { link: edge.link },
+        data: { link: edge.link, connectionId: edge.connectionId },
         style: {
           stroke: edgeType === 'insight' ? 'var(--magenta)' :
                   edgeType === 'connection' ? 'var(--accent)' :
@@ -626,9 +662,9 @@ function PhysicsGraphContent({
   }, [fitView, focusNodeId, flowNodeIds]);
 
   useEffect(() => {
-    const match = focusNodeId?.match(/^subtopic-(\d+)-/);
-    if (!match) return;
-    const topicId = `topic-${match[1]}`;
+    const focusedNode = currentGraph.nodes.find((node) => node.id === focusNodeId);
+    if (!focusedNode?.parentTopicId) return;
+    const topicId = focusedNode.parentTopicId;
     setCollapsedTopics((previous) => {
       if (!previous.has(topicId)) return previous;
       const next = new Set(previous);
@@ -636,14 +672,14 @@ function PhysicsGraphContent({
       return next;
     });
     setExpandedTopics((previous) => new Set(previous).add(topicId));
-  }, [focusNodeId]);
+  }, [currentGraph.nodes, focusNodeId]);
 
   useEffect(() => {
     if (reheatRequest > 0) restartSimulation(1);
   }, [reheatRequest, restartSimulation]);
 
   const toggleTopicSubtopics = useCallback((nodeId: string) => {
-    if (!nodeId.startsWith('topic-')) return;
+    if (!nodeId.startsWith('topic:')) return;
     if (showSubtopicsRef.current) {
       setCollapsedTopics((prev) => {
         const next = new Set(prev);
@@ -670,12 +706,17 @@ function PhysicsGraphContent({
 
   // Delay single-click expansion so a double-click can cancel it.
   const handleNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+    const graphNode = currentGraph.nodes.find((item) => item.id === node.id);
+    if (editMode) {
+      if (graphNode) onNodeSelect(graphNode);
+      return;
+    }
+
     const pendingClick = pendingClickRef.current;
     if (pendingClick?.id === node.id) {
       window.clearTimeout(pendingClick.timeout);
       pendingClickRef.current = null;
 
-      const graphNode = currentGraph.nodes.find((item) => item.id === node.id);
       if (graphNode) {
         onNodeDetail(graphNode);
         restartSimulation(0.3);
@@ -693,7 +734,26 @@ function PhysicsGraphContent({
       toggleTopicSubtopics(node.id);
     }, DOUBLE_CLICK_DELAY);
     pendingClickRef.current = { id: node.id, timeout };
-  }, [currentGraph.nodes, onNodeDetail, restartSimulation, toggleTopicSubtopics]);
+  }, [currentGraph.nodes, editMode, onNodeDetail, onNodeSelect, restartSimulation, toggleTopicSubtopics]);
+
+  const handleEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
+    const connectionId = edge.data?.connectionId;
+    if (editMode && typeof connectionId === 'string') onConnectionSelect(connectionId);
+  }, [editMode, onConnectionSelect]);
+
+  const handleNodeDrag = useCallback((_: React.MouseEvent, node: Node) => {
+    const simulationNode = simulationNodes.find((item) => item.id === node.id);
+    if (!simulationNode) return;
+    const radius = getNodeRadius(simulationNode.nodeType, nodeScale);
+    moveNode(node.id, node.position.x + radius, node.position.y + radius, true);
+  }, [moveNode, nodeScale, simulationNodes]);
+
+  const handleNodeDragStop = useCallback((_: React.MouseEvent, node: Node) => {
+    const simulationNode = simulationNodes.find((item) => item.id === node.id);
+    if (!simulationNode) return;
+    const radius = getNodeRadius(simulationNode.nodeType, nodeScale);
+    moveNode(node.id, node.position.x + radius, node.position.y + radius, false);
+  }, [moveNode, nodeScale, simulationNodes]);
 
   const handleEdgeMouseEnter = useCallback((event: React.MouseEvent, edge: Edge) => {
     const bounds = containerRef.current?.getBoundingClientRect();
@@ -723,8 +783,12 @@ function PhysicsGraphContent({
         edges={flowEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
+        onNodeDrag={handleNodeDrag}
+        onNodeDragStop={handleNodeDragStop}
+        onEdgeClick={handleEdgeClick}
         onEdgeMouseEnter={handleEdgeMouseEnter}
         onEdgeMouseLeave={() => setEdgeTooltip(null)}
+        nodesDraggable={editMode}
         className="dashboard-flow__graph"
       >
         <Background color="var(--border-soft)" variant={BackgroundVariant.Dots} gap={40} size={1} />
