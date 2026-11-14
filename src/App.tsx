@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import BootTutorial from './components/BootTutorial';
 import Uploader from './components/Uploader';
-import Loading from './components/Loading';
+import Loading, { DEMO_LOADING_DURATION_MS } from './components/Loading';
 import Dashboard from './components/Dashboard';
 import type { Chunk, ChunkStore, OriginalStructure, SessionImport } from './types/schema';
 import { chunkDocument } from './lib/chunking';
 import { embedBatch } from './lib/embeddings';
+import magnetismPreview from '../tests/magnetism-output-insights.json';
 import './styles/global.css';
 
 /* ---------------------------------------------------------------
@@ -31,8 +32,21 @@ interface ProcessingState {
   status?: string;
   error?: string | null;
   onBackToUpload?: () => void;
+  isDemo?: boolean;
   isComplete?: boolean;
 }
+
+const DEMO_STRUCTURE: OriginalStructure = {
+  ...magnetismPreview,
+  sessionName: 'Magnetism Insights Demo',
+  topics: magnetismPreview.topics.map((topic) => ({
+    ...topic,
+    subtopics: topic.subtopics.map((subtopic) => ({
+      ...subtopic,
+      discrepancy: subtopic.discrepancy ?? undefined,
+    })),
+  })),
+};
 
 function App() {
   const [phase, setPhase] = useState<AppPhase>('boot');
@@ -203,30 +217,19 @@ function App() {
     const hasNewFiles = data.files.length > 0;
     const hasImportedSessions = data.importedSessions.length > 0;
 
-    if (!hasNewFiles && !hasImportedSessions) {
+    if (!hasNewFiles && !hasImportedSessions && !data.isTest) {
       setError('No files or sessions to process');
       return;
     }
 
     // Set loading state immediately
-    setProcessingState({ sessionName: data.sessionName });
+    setProcessingState({
+      sessionName: data.isTest ? DEMO_STRUCTURE.sessionName : data.sessionName,
+      isDemo: data.isTest,
+    });
     setPhase('loading');
 
-    // Test mode: simulate 35 second loading without AI
-    if (data.isTest) {
-      setTimeout(() => {
-        // Create empty structure for testing
-        const emptyStructure: OriginalStructure = {
-          sessionName: data.sessionName,
-          createdAt: new Date().toISOString(),
-          topics: [],
-          connections: []
-        };
-        setResultChunkStore({ chunks: [] });
-        setResultStructure(emptyStructure);
-      }, 35000);
-      return;
-    }
+    if (data.isTest) return;
 
     try {
       let result: SessionImport;
@@ -244,6 +247,7 @@ function App() {
 
       setResultChunkStore(result.chunkStore);
       setResultStructure(result.structure);
+      setProcessingState((previous) => previous ? { ...previous, isComplete: true } : previous);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process';
       setError(errorMessage);
@@ -251,13 +255,18 @@ function App() {
     }
   }, []);
 
-  /* ---- Auto-transition to dashboard when processing completes ---- */
-
+  /* ---- Load the local preview fixture after its short demo progress ---- */
   useEffect(() => {
-    if (phase === 'loading' && resultStructure && !error) {
-      setPhase('dashboard');
-    }
-  }, [phase, resultStructure, error]);
+    if (phase !== 'loading' || !processingState?.isDemo || processingState.isComplete) return;
+
+    const timeout = setTimeout(() => {
+      setResultChunkStore({ chunks: [] });
+      setResultStructure(DEMO_STRUCTURE);
+      setProcessingState((previous) => previous ? { ...previous, isComplete: true } : previous);
+    }, DEMO_LOADING_DURATION_MS);
+
+    return () => clearTimeout(timeout);
+  }, [phase, processingState?.isDemo, processingState?.isComplete]);
 
   /* ---- Retry from upload on error ---- */
 
@@ -266,6 +275,10 @@ function App() {
     setResultStructure(null);
     setProcessingState(null);
     setPhase('upload');
+  }, []);
+
+  const handleLoadingComplete = useCallback(() => {
+    setPhase('dashboard');
   }, []);
 
   /* ---- Render ---- */
@@ -299,6 +312,8 @@ function App() {
           error={error}
           onBackToUpload={handleRetry}
           isComplete={processingState.isComplete}
+          isDemo={processingState.isDemo}
+          onAnimationComplete={handleLoadingComplete}
         />
       )}
 

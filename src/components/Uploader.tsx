@@ -486,20 +486,14 @@ export default function Uploader({ onContinue }: UploaderProps) {
             className="uploader__btn uploader__btn--test"
             onClick={() => {
               onContinue({
-                sessionName: sessionName || 'Test Session',
-                files: files.length > 0 ? files : [{
-                  id: 'test-file',
-                  name: 'test-document.txt',
-                  type: 'txt',
-                  size: 1024,
-                  content: 'Test content for loading screen demonstration.'
-                }],
+                sessionName: sessionName || 'Magnetism Insights Demo',
+                files: [],
                 importedSessions: [],
                 isTest: true
               });
             }}
           >
-            Test Loading Screen (35s)
+            Try Demo
           </button>
         </div>
       </div>
